@@ -1,0 +1,27 @@
+{
+  "name": "dukaai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-Powered Small Shop Operations Manager",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/api & npm run dev --workspace=apps/web",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces",
+    "build:api": "npm run build --workspace=apps/api",
+    "build:web": "npm run build --workspace=apps/web"
+  },
+  "keywords": [
+    "telegram-bot",
+    "ai",
+    "gemini",
+    "small-business",
+    "retail"
+  ],
+  "author": "Belayhun Arage",
+  "license": "MIT"
+}
