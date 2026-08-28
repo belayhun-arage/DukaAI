@@ -1,0 +1,151 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code when working with DukaAI.
+
+## Project Overview
+
+**DukaAI** - AI-powered Small Shop Operations Assistant for Ethiopian retail businesses.
+
+A full-stack AI automation project for Brain3.ai that automates the **Small Shop Operations Manager** role with:
+- Telegram Bot for voice + text order intake (Amharic/English)
+- Web Dashboard for order management and analytics
+- AI-powered order parsing and demand forecasting
+- Workflow automation for reminders and follow-ups
+
+## Monorepo Structure
+
+```
+DukaAI/
+├── apps/
+│   ├── api/          # Express + TypeScript backend
+│   └── web/          # React + Vite frontend
+├── packages/
+│   └── shared/       # Shared types and constants
+└── package.json      # Root workspace config
+```
+
+## Quick Start
+
+```bash
+# Install dependencies (from root)
+npm install
+
+# Build shared package first (required before running apps)
+npm run build --workspace=packages/shared
+
+# Run both API and web in development
+npm run dev
+
+# Or run individually
+npm run dev:api     # API on port 3001
+npm run dev:web     # Web on port 5173
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Frontend** | React 18, Vite, TailwindCSS, Recharts, React Router, Lucide |
+| **Backend** | Node.js, Express, TypeScript |
+| **Database** | Firebase Firestore (Spark plan - free) |
+| **AI** | Google Gemini API, Whisper via Groq |
+| **Bot** | node-telegram-bot-api |
+| **Workflow** | XState |
+| **Validation** | Zod |
+| **Hosting** | Render (backend) + Vercel (frontend) |
+
+## Packages
+
+### `@dukaai/api` (apps/api)
+Express backend with:
+- **Routes**: Health check implemented; shops, products, orders, customers, analytics, webhooks are TODO
+- **Config**: `src/config/` - Environment config and Firebase initialization
+- **Entry**: `src/index.ts`
+
+Run: `npm run dev --workspace=apps/api`
+
+### `@dukaai/web` (apps/web)
+React dashboard with pages:
+- Dashboard, Orders, Products, Customers, Analytics, Settings
+
+Run: `npm run dev --workspace=apps/web`
+
+### `@dukaai/shared` (packages/shared)
+Shared TypeScript types and constants:
+- `types/index.ts` - Shop, Product, Customer, Order, TelegramSession, AI types
+- `constants/index.ts` - Shared constants
+
+Build: `npm run build --workspace=packages/shared`
+
+## Environment Variables
+
+Copy `apps/api/.env.example` to `apps/api/.env` and configure:
+
+| Variable | Service | Notes |
+|----------|---------|-------|
+| `FIREBASE_*` | Firestore | Spark plan (free) |
+| `TELEGRAM_BOT_TOKEN` | Telegram | From BotFather |
+| `GEMINI_API_KEY` | Google AI Studio | Free tier |
+| `GROQ_API_KEY` | Groq | Whisper transcription |
+| `SENDGRID_API_KEY` | SendGrid | Free tier (100/day) |
+| `CRON_SECRET` | cron-job.org | Webhook auth |
+
+## Current Implementation Status
+
+**Completed:**
+- Monorepo structure with npm workspaces
+- Shared types package
+- API scaffolding with Express, middleware, config
+- Web scaffolding with React Router, TailwindCSS, page stubs
+- Health check endpoint
+
+**TODO:**
+- API routes (shops, products, orders, customers, analytics, webhooks)
+- Telegram bot integration
+- Gemini AI order parsing
+- Groq/Whisper voice transcription
+- XState workflow engine
+- Dashboard data fetching
+- Firebase integration
+
+## API Endpoints (Planned)
+
+```
+GET  /api/health            # Health check (implemented)
+POST /api/webhooks/telegram # Telegram webhook
+POST /api/webhooks/cron     # cron-job.org webhook
+
+# Shop Management
+GET/POST /api/shops
+
+# Products
+GET/POST/PUT/DELETE /api/products/:id
+
+# Orders
+GET/POST/PUT /api/orders/:id
+POST /api/orders/:id/status
+
+# Customers
+GET /api/customers
+GET /api/customers/:id
+
+# Analytics
+GET /api/analytics/dashboard
+GET /api/analytics/daily
+```
+
+## Code Conventions
+
+- TypeScript strict mode
+- Shared types in `@dukaai/shared`
+- Zod for runtime validation
+- API responses follow `ApiResponse<T>` and `PaginatedResponse<T>` types
+- Order statuses: NEW, CONFIRMED, PAID, READY, DELIVERED, CANCELLED
+
+## Assignment Requirements
+
+This project must:
+1. Use only free-tier services (no credit card required)
+2. Integrate at least 2 third-party APIs (Telegram, Gemini, SendGrid)
+3. Include proactive automation via cron-job.org
+4. Balance frontend and backend implementation
