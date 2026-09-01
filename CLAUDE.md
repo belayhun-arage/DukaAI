@@ -94,44 +94,87 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 
 **Completed:**
 - Monorepo structure with npm workspaces
-- Shared types package
+- Shared types package (`@dukaai/shared`)
 - API scaffolding with Express, middleware, config
 - Web scaffolding with React Router, TailwindCSS, page stubs
-- Health check endpoint
+- Firebase Firestore integration with collection helpers
+- Full CRUD services: Shop, Product, Order, Customer
+- API routes: shops, products, orders, customers, analytics, jobs, webhooks, ai
+- Telegram bot with commands: /start, /status, /orders, /inventory, /deliver, /pay, /confirm
+- Gemini AI integration: order parsing, intent detection, daily summaries
 
 **TODO:**
-- API routes (shops, products, orders, customers, analytics, webhooks)
-- Telegram bot integration
-- Gemini AI order parsing
 - Groq/Whisper voice transcription
 - XState workflow engine
-- Dashboard data fetching
-- Firebase integration
+- Dashboard data fetching (connect frontend to API)
+- Frontend components implementation
+- Deployment to Render/Vercel
+- cron-job.org setup
 
-## API Endpoints (Planned)
+## API Endpoints (Implemented)
 
 ```
-GET  /api/health            # Health check (implemented)
-POST /api/webhooks/telegram # Telegram webhook
-POST /api/webhooks/cron     # cron-job.org webhook
+# Health
+GET  /api/health            # Health check
+GET  /api/health/ready      # Readiness check
 
-# Shop Management
-GET/POST /api/shops
+# Shops
+POST   /api/shops           # Create shop
+GET    /api/shops/current   # Get current shop (requires x-shop-id header)
+GET    /api/shops/:id       # Get shop by ID
+PATCH  /api/shops           # Update shop info
+PATCH  /api/shops/settings  # Update shop settings
 
-# Products
-GET/POST/PUT/DELETE /api/products/:id
+# Products (requires x-shop-id header)
+GET    /api/products             # List products
+GET    /api/products/search      # Search products
+GET    /api/products/low-stock   # Get low stock products
+GET    /api/products/:id         # Get product
+POST   /api/products             # Create product
+PATCH  /api/products/:id         # Update product
+PATCH  /api/products/:id/stock   # Update stock
+DELETE /api/products/:id         # Soft delete product
 
-# Orders
-GET/POST/PUT /api/orders/:id
-POST /api/orders/:id/status
+# Orders (requires x-shop-id header)
+GET    /api/orders             # List orders
+GET    /api/orders/pending     # Get pending orders
+GET    /api/orders/today       # Get today's orders
+GET    /api/orders/stats       # Get order statistics
+GET    /api/orders/:id         # Get order
+POST   /api/orders             # Create order
+PATCH  /api/orders/:id/status  # Update order status
 
-# Customers
-GET /api/customers
-GET /api/customers/:id
+# Customers (requires x-shop-id header)
+GET    /api/customers          # List customers
+GET    /api/customers/top      # Top customers by spending
+GET    /api/customers/recent   # Recently active customers
+GET    /api/customers/:id      # Get customer with order history
+POST   /api/customers          # Create customer
+PATCH  /api/customers/:id      # Update customer
+GET    /api/customers/:id/orders # Get customer orders
 
-# Analytics
-GET /api/analytics/dashboard
-GET /api/analytics/daily
+# Analytics (requires x-shop-id header)
+GET    /api/analytics/dashboard    # Dashboard summary
+GET    /api/analytics/sales        # Sales over time
+GET    /api/analytics/top-products # Top selling products
+GET    /api/analytics/customers    # Customer insights
+
+# AI (requires x-shop-id header for some)
+POST   /api/ai/parse-order       # Parse natural language order
+POST   /api/ai/detect-intent     # Detect message intent
+POST   /api/ai/answer-question   # Answer product question
+POST   /api/ai/generate-summary  # Generate daily summary
+
+# Jobs (requires x-cron-secret header)
+POST   /api/jobs/keep-alive       # Keep server alive
+POST   /api/jobs/daily-summary    # Run daily summary
+POST   /api/jobs/inventory-check  # Run inventory check
+
+# Webhooks
+POST   /api/webhooks/telegram           # Telegram webhook
+GET    /api/webhooks/telegram/info      # Get webhook info
+POST   /api/webhooks/telegram/set-webhook # Set webhook URL
+DELETE /api/webhooks/telegram/webhook   # Delete webhook
 ```
 
 ## Code Conventions
