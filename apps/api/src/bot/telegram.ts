@@ -14,9 +14,26 @@ export function initializeBot(): TelegramBot | null {
     return null;
   }
 
-  // Create bot without polling (we'll use webhooks in production)
-  bot = new TelegramBot(config.telegram.botToken);
-  console.log('Telegram bot initialized');
+  // Use polling for local development, webhooks for production
+  const usePolling = config.isDev && !config.telegram.webhookUrl;
+
+  bot = new TelegramBot(config.telegram.botToken, { polling: usePolling });
+
+  if (usePolling) {
+    console.log('Telegram bot initialized with polling mode');
+
+    // Set up message handler for polling mode
+    bot.on('message', (msg) => {
+      processUpdate({ update_id: Date.now(), message: msg });
+    });
+
+    bot.on('callback_query', (query) => {
+      processUpdate({ update_id: Date.now(), callback_query: query });
+    });
+  } else {
+    console.log('Telegram bot initialized (webhook mode)');
+  }
+
   return bot;
 }
 

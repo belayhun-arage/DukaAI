@@ -20,11 +20,15 @@ export function ShopProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load shop on mount if shopId exists in localStorage
+  // Load shop on mount if shopId exists in localStorage or use demo shop
   useEffect(() => {
     const savedShopId = getShopId();
+    const demoShopId = import.meta.env.VITE_DEMO_SHOP_ID;
+
     if (savedShopId) {
       loadShop(savedShopId);
+    } else if (demoShopId) {
+      loadShop(demoShopId);
     } else {
       setIsLoading(false);
     }

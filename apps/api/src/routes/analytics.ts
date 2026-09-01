@@ -61,11 +61,11 @@ router.get('/dashboard', async (req: Request, res: Response) => {
       success: true,
       data: stats,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting dashboard stats:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get dashboard stats',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to get dashboard stats',
     });
   }
 });

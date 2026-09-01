@@ -27,11 +27,11 @@ router.get('/', async (req: Request, res: Response) => {
       success: true,
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error listing orders:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to list orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to list orders',
     });
   }
 });
@@ -63,11 +63,11 @@ router.get('/today', async (req: Request, res: Response) => {
       success: true,
       data: orders,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error getting today orders:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to get today orders',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to get today orders',
     });
   }
 });
@@ -152,11 +152,11 @@ router.post('/', async (req: Request, res: Response) => {
       success: true,
       data: order,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating order:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create order',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to create order',
     });
   }
 });

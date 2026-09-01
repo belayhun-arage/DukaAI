@@ -26,11 +26,11 @@ router.get('/', async (req: Request, res: Response) => {
       success: true,
       data: result,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error listing products:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to list products',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to list products',
     });
   }
 });

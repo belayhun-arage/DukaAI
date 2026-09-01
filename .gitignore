@@ -45,3 +45,8 @@ ui-debug.log
 # Misc
 *.tsbuildinfo
 .eslintcache
+
+# Firebase credentials (NEVER commit)
+*firebase*.json
+*-adminsdk-*.json
+serviceAccount*.json

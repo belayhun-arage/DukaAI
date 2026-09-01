@@ -26,11 +26,11 @@ router.post('/', async (req: Request, res: Response) => {
       success: true,
       data: shop,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating shop:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create shop',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Failed to create shop',
     });
   }
 });
@@ -113,8 +113,8 @@ router.patch('/settings', requireShop, async (req: Request, res: Response) => {
 // Update shop info
 router.patch('/', requireShop, async (req: Request, res: Response) => {
   try {
-    const { name, ownerName } = req.body;
-    const shop = await shopService.updateShop(req.shopId!, { name, ownerName });
+    const { name, ownerName, ownerTelegramId } = req.body;
+    const shop = await shopService.updateShop(req.shopId!, { name, ownerName, ownerTelegramId });
 
     if (!shop) {
       return res.status(404).json({

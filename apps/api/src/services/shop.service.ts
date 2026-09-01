@@ -82,7 +82,7 @@ export async function updateShopSettings(
 
 export async function updateShop(
   shopId: string,
-  updates: Partial<Pick<Shop, 'name' | 'ownerName'>>
+  updates: Partial<Pick<Shop, 'name' | 'ownerName' | 'ownerTelegramId'>>
 ): Promise<Shop | null> {
   const shopRef = collections.shops().doc(shopId);
   const doc = await shopRef.get();

@@ -62,7 +62,7 @@ export async function createOrder(
     items: input.items,
     totalAmount,
     status: 'NEW' as OrderStatus,
-    statusHistory: [{ status: 'NEW', timestamp: FieldValue.serverTimestamp() }],
+    statusHistory: [{ status: 'NEW', timestamp: new Date() }],
     notes: input.notes ?? null,
     source: input.source ?? 'telegram',
     createdAt: FieldValue.serverTimestamp(),
@@ -191,7 +191,7 @@ export async function updateOrderStatus(
 
   const historyEntry = {
     status: newStatus,
-    timestamp: FieldValue.serverTimestamp(),
+    timestamp: new Date(),
     note: note ?? null,
   };
 
