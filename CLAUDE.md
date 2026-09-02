@@ -58,15 +58,21 @@ npm run dev:web     # Web on port 5173
 
 ### `@dukaai/api` (apps/api)
 Express backend with:
-- **Routes**: Health check implemented; shops, products, orders, customers, analytics, webhooks are TODO
+- **Routes**: `src/routes/` - health, shops, products, orders, customers, analytics, jobs, webhooks, ai
+- **Services**: `src/services/` - shop, product, order, customer, ai services
+- **Bot**: `src/bot/telegram.ts` - Telegram bot initialization and handlers
+- **Middleware**: `src/middleware/shopContext.ts` - Shop context extraction
 - **Config**: `src/config/` - Environment config and Firebase initialization
 - **Entry**: `src/index.ts`
 
 Run: `npm run dev --workspace=apps/api`
 
 ### `@dukaai/web` (apps/web)
-React dashboard with pages:
-- Dashboard, Orders, Products, Customers, Analytics, Settings
+React dashboard with:
+- **Pages**: Dashboard, Orders, Products, Customers, Analytics, Settings
+- **Services**: `src/services/api.ts` - API client
+- **Context**: `src/context/ShopContext.tsx` - Shop state management
+- **Components**: `src/components/Layout.tsx` - Main layout with navigation
 
 Run: `npm run dev --workspace=apps/web`
 
@@ -104,12 +110,13 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 - Gemini AI integration: order parsing, intent detection, daily summaries
 
 **TODO:**
-- Groq/Whisper voice transcription
-- XState workflow engine
-- Dashboard data fetching (connect frontend to API)
-- Frontend components implementation
-- Deployment to Render/Vercel
-- cron-job.org setup
+- Groq/Whisper voice transcription for voice messages
+- XState workflow engine for conversation state management
+- Frontend: Connect pages to API endpoints (data fetching hooks)
+- Frontend: Implement data tables, forms, and charts
+- SendGrid email notifications
+- Deployment to Render (API) + Vercel (web)
+- cron-job.org webhook configuration
 
 ## API Endpoints (Implemented)
 
