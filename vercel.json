@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd packages/shared && npm run build && cd ../../apps/web && npm run build",
+  "buildCommand": "ls -la && cd packages/shared && npm run build && cd ../../apps/web && npm run build",
   "outputDirectory": "apps/web/dist",
   "framework": null,
   "rewrites": [
