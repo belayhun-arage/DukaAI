@@ -1,9 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build -w packages/shared && npm run build -w apps/web",
+  "buildCommand": "npx tsc --project packages/shared/tsconfig.json && cd apps/web && npx vite build",
   "outputDirectory": "apps/web/dist",
   "framework": null,
-  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
