@@ -91,16 +91,19 @@ export async function getProducts(
     .limit(pageSize)
     .get();
 
-  const items = snapshot.docs
+  const data = snapshot.docs
     .map((doc) => mapProduct(doc, shopId))
     .filter((p): p is Product => p !== null);
 
+  const totalPages = Math.ceil(total / pageSize);
+
   return {
-    items,
+    data,
     total,
     page,
     pageSize,
-    hasMore: offset + items.length < total,
+    totalPages,
+    hasMore: page < totalPages,
   };
 }
 

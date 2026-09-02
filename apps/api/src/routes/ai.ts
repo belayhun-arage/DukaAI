@@ -25,7 +25,7 @@ router.post('/parse-order', requireShop, async (req: Request, res: Response) => 
 
     const parsedOrder = await aiService.parseOrder(
       message,
-      productsResult.items,
+      productsResult.data,
       language || 'en'
     );
 
@@ -87,7 +87,7 @@ router.post('/answer-question', requireShop, async (req: Request, res: Response)
       pageSize: 100,
     });
 
-    const answer = await aiService.answerProductQuestion(question, productsResult.items);
+    const answer = await aiService.answerProductQuestion(question, productsResult.data);
 
     res.json({
       success: true,

@@ -108,12 +108,17 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 - API routes: shops, products, orders, customers, analytics, jobs, webhooks, ai
 - Telegram bot with commands: /start, /status, /orders, /inventory, /deliver, /pay, /confirm
 - Gemini AI integration: order parsing, intent detection, daily summaries
+- Frontend data fetching hooks: useOrders, useProducts, useCustomers, useAnalytics
+- Dashboard page connected to /api/analytics/dashboard
+- Orders page with status updates and order detail modal
+- Products page with CRUD operations (create, edit, delete, stock updates)
+- Customers page with customer list and profile detail modal
+- Analytics page with sales charts (Recharts) and top products
+- Settings page with shop creation, settings management, notifications
 
 **TODO:**
 - Groq/Whisper voice transcription for voice messages
 - XState workflow engine for conversation state management
-- Frontend: Connect pages to API endpoints (data fetching hooks)
-- Frontend: Implement data tables, forms, and charts
 - SendGrid email notifications
 - Deployment to Render (API) + Vercel (web)
 - cron-job.org webhook configuration

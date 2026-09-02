@@ -8,52 +8,93 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
-import { TrendingUp, ShoppingCart, Users, DollarSign } from 'lucide-react';
+import { TrendingUp, ShoppingCart, Users, DollarSign, RefreshCw, AlertTriangle, Package } from 'lucide-react';
+import { useAnalyticsSummary } from '../hooks/useAnalytics';
+import { useCustomers } from '../hooks/useCustomers';
+import { useShop } from '../context/ShopContext';
+import type { CustomerSegment } from '@dukaai/shared';
 
-// Placeholder data
-const revenueData = [
-  { date: 'Jan 1', revenue: 12000, orders: 8 },
-  { date: 'Jan 2', revenue: 15000, orders: 12 },
-  { date: 'Jan 3', revenue: 8500, orders: 6 },
-  { date: 'Jan 4', revenue: 22000, orders: 15 },
-  { date: 'Jan 5', revenue: 18000, orders: 11 },
-  { date: 'Jan 6', revenue: 25000, orders: 18 },
-  { date: 'Jan 7', revenue: 20000, orders: 14 },
-];
-
-const categoryData = [
-  { name: 'Grains', value: 45000 },
-  { name: 'Oils', value: 28000 },
-  { name: 'Sweeteners', value: 35000 },
-  { name: 'Dairy', value: 18000 },
-  { name: 'Others', value: 12000 },
-];
-
-const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#6b7280'];
-
-const customerSegments = [
-  { segment: 'Champions', count: 15, color: '#22c55e' },
-  { segment: 'Loyal', count: 25, color: '#3b82f6' },
-  { segment: 'Potential', count: 40, color: '#8b5cf6' },
-  { segment: 'At Risk', count: 12, color: '#f59e0b' },
-  { segment: 'Lost', count: 8, color: '#ef4444' },
-];
+const segmentConfig: Record<CustomerSegment, { label: string; color: string }> = {
+  CHAMPION: { label: 'Champions', color: '#22c55e' },
+  LOYAL: { label: 'Loyal', color: '#3b82f6' },
+  POTENTIAL: { label: 'Potential', color: '#8b5cf6' },
+  AT_RISK: { label: 'At Risk', color: '#f59e0b' },
+  LOST: { label: 'Lost', color: '#ef4444' },
+};
 
 export default function Analytics() {
-  const totalRevenue = revenueData.reduce((sum, d) => sum + d.revenue, 0);
-  const totalOrders = revenueData.reduce((sum, d) => sum + d.orders, 0);
-  const avgOrderValue = Math.round(totalRevenue / totalOrders);
+  const { shop } = useShop();
+
+  const {
+    salesData,
+    topProducts,
+    customerInsights,
+    totalRevenue,
+    totalOrders,
+    avgOrderValue,
+    isLoading,
+    error,
+    refetch,
+  } = useAnalyticsSummary();
+
+  const { customers } = useCustomers();
+
+  const currency = shop?.settings?.currency || 'ETB';
+
+  // Format sales data for charts
+  const chartData = salesData.map((d) => ({
+    date: new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    revenue: d.revenue,
+    orders: d.orders,
+  }));
+
+  // Calculate segment distribution
+  const segmentCounts = customers.reduce((acc, c) => {
+    acc[c.segment] = (acc[c.segment] || 0) + 1;
+    return acc;
+  }, {} as Record<CustomerSegment, number>);
+
+  const totalCustomerCount = customers.length || 1;
+
+  if (!shop) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <Package className="w-16 h-16 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-600 mb-2">No Shop Selected</h2>
+        <p className="text-gray-500 mb-4">Create or select a shop to view analytics.</p>
+        <a href="/settings" className="btn btn-primary">Go to Settings</a>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <AlertTriangle className="w-16 h-16 text-red-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-600 mb-2">Error Loading Analytics</h2>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <button onClick={refetch} className="btn btn-primary">Try Again</button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-gray-500 mt-1">Track your shop performance and insights</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-500 mt-1">Track your shop performance and insights</p>
+        </div>
+        <button
+          onClick={refetch}
+          className="btn btn-secondary flex items-center gap-2"
+          disabled={isLoading}
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {/* Summary Stats */}
@@ -65,7 +106,7 @@ export default function Analytics() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                ETB {(totalRevenue / 1000).toFixed(0)}K
+                {currency} {(totalRevenue / 1000).toFixed(0)}K
               </p>
               <p className="text-sm text-gray-500">Weekly Revenue</p>
             </div>
@@ -88,7 +129,7 @@ export default function Analytics() {
               <TrendingUp className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">ETB {avgOrderValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{currency} {avgOrderValue.toLocaleString()}</p>
               <p className="text-sm text-gray-500">Avg Order Value</p>
             </div>
           </div>
@@ -99,7 +140,9 @@ export default function Analytics() {
               <Users className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">100</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {customerInsights?.totalCustomers || customers.length}
+              </p>
               <p className="text-sm text-gray-500">Total Customers</p>
             </div>
           </div>
@@ -107,109 +150,122 @@ export default function Analytics() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Revenue Trend</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#22c55e"
-                  strokeWidth={3}
-                  dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {isLoading && salesData.length === 0 ? (
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
         </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Revenue Chart */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Revenue Trend</h3>
+            <div className="h-80">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number) => [`${currency} ${value.toLocaleString()}`, 'Revenue']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#22c55e"
+                      strokeWidth={3}
+                      dot={{ fill: '#22c55e', strokeWidth: 2, r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No sales data available
+                </div>
+              )}
+            </div>
+          </div>
 
-        {/* Orders Chart */}
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Daily Orders</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={revenueData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
-                <YAxis stroke="#6b7280" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Orders Chart */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6">Daily Orders</h3>
+            <div className="h-80">
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#fff',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar dataKey="orders" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-500">
+                  No order data available
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Category Breakdown */}
+        {/* Top Products */}
         <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6">Sales by Category</h3>
-          <div className="h-64 flex items-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="value"
-                >
-                  {categoryData.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
-            {categoryData.map((cat, index) => (
-              <div key={cat.name} className="flex items-center gap-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: COLORS[index] }}
-                />
-                <span className="text-sm text-gray-600">{cat.name}</span>
-              </div>
-            ))}
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Top Selling Products</h3>
+          {topProducts.length > 0 ? (
+            <div className="space-y-4">
+              {topProducts.slice(0, 5).map((product, index) => (
+                <div key={product.productId} className="flex items-center gap-4">
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-bold text-primary-700">{index + 1}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{product.productName}</p>
+                    <p className="text-sm text-gray-500">{product.qty} units sold</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-gray-900">
+                      {currency} {product.revenue.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              No product data available
+            </div>
+          )}
         </div>
 
         {/* Customer Segments */}
         <div className="card">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Customer Segments (RFM)</h3>
           <div className="space-y-4">
-            {customerSegments.map((seg) => {
-              const total = customerSegments.reduce((sum, s) => sum + s.count, 0);
-              const percentage = ((seg.count / total) * 100).toFixed(0);
+            {(Object.keys(segmentConfig) as CustomerSegment[]).map((segment) => {
+              const count = segmentCounts[segment] || 0;
+              const percentage = ((count / totalCustomerCount) * 100).toFixed(0);
+              const config = segmentConfig[segment];
               return (
-                <div key={seg.segment}>
+                <div key={segment}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">{seg.segment}</span>
+                    <span className="text-sm font-medium text-gray-700">{config.label}</span>
                     <span className="text-sm text-gray-500">
-                      {seg.count} ({percentage}%)
+                      {count} ({percentage}%)
                     </span>
                   </div>
                   <div className="w-full bg-gray-100 rounded-full h-2">
@@ -217,7 +273,7 @@ export default function Analytics() {
                       className="h-2 rounded-full transition-all"
                       style={{
                         width: `${percentage}%`,
-                        backgroundColor: seg.color,
+                        backgroundColor: config.color,
                       }}
                     />
                   </div>
@@ -225,6 +281,9 @@ export default function Analytics() {
               );
             })}
           </div>
+          {customers.length === 0 && (
+            <p className="text-center text-gray-500 mt-4">No customer data available</p>
+          )}
         </div>
       </div>
     </div>

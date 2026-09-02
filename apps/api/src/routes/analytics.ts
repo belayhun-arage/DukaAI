@@ -120,12 +120,12 @@ router.get('/top-products', async (req: Request, res: Response) => {
     startDate.setHours(0, 0, 0, 0);
 
     // Get all orders in date range
-    const orders = (await orderService.getOrders(shopId, { pageSize: 1000, startDate })).items;
+    const ordersResult = await orderService.getOrders(shopId, { pageSize: 1000, startDate });
 
     // Aggregate product sales
     const productSales: Record<string, { productId: string; productName: string; qty: number; revenue: number }> = {};
 
-    orders
+    ordersResult.data
       .filter((o) => o.status !== 'CANCELLED')
       .forEach((order) => {
         order.items.forEach((item) => {

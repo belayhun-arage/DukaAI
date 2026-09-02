@@ -4,6 +4,7 @@ export interface Shop {
   name: string;
   ownerTelegramId: string;
   ownerName: string;
+  telegramBotToken?: string;
   createdAt: Date;
   settings: ShopSettings;
 }
@@ -12,6 +13,9 @@ export interface ShopSettings {
   currency: string;
   timezone: string;
   lowStockThreshold: number;
+  telegramNotifications?: boolean;
+  emailNotifications?: boolean;
+  dailyReports?: boolean;
 }
 
 // Product types
@@ -40,6 +44,8 @@ export interface ProductInput {
 }
 
 // Customer types
+export type CustomerSegment = 'CHAMPION' | 'LOYAL' | 'POTENTIAL' | 'AT_RISK' | 'LOST';
+
 export interface Customer {
   id: string;
   shopId: string;
@@ -49,6 +55,7 @@ export interface Customer {
   totalOrders: number;
   totalSpent: number;
   lastOrderDate?: Date;
+  segment: CustomerSegment;
   createdAt: Date;
 }
 
@@ -145,9 +152,10 @@ export interface ApiResponse<T> {
 }
 
 export interface PaginatedResponse<T> {
-  items: T[];
+  data: T[];
   total: number;
   page: number;
   pageSize: number;
+  totalPages: number;
   hasMore: boolean;
 }

@@ -1,10 +1,43 @@
 import { collections } from '../config/firebase';
-import { Customer, PaginatedResponse } from '@dukaai/shared';
+import { Customer, PaginatedResponse, CustomerSegment } from '@dukaai/shared';
 import { FieldValue } from 'firebase-admin/firestore';
+
+// Calculate customer segment based on RFM (Recency, Frequency, Monetary)
+function calculateSegment(
+  totalOrders: number,
+  totalSpent: number,
+  lastOrderDate?: Date
+): CustomerSegment {
+  const daysSinceLastOrder = lastOrderDate
+    ? Math.floor((Date.now() - lastOrderDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 365; // Assume very old if never ordered
+
+  // RFM Scoring (simplified)
+  // Recency: < 30 days = high, < 90 days = medium, else low
+  // Frequency: > 10 orders = high, > 3 orders = medium, else low
+  // Monetary: > 10000 = high, > 3000 = medium, else low
+
+  const recencyScore = daysSinceLastOrder < 30 ? 3 : daysSinceLastOrder < 90 ? 2 : 1;
+  const frequencyScore = totalOrders > 10 ? 3 : totalOrders > 3 ? 2 : 1;
+  const monetaryScore = totalSpent > 10000 ? 3 : totalSpent > 3000 ? 2 : 1;
+
+  const totalScore = recencyScore + frequencyScore + monetaryScore;
+
+  if (totalScore >= 8) return 'CHAMPION';
+  if (totalScore >= 6) return 'LOYAL';
+  if (totalScore >= 4) return 'POTENTIAL';
+  if (recencyScore <= 1 && frequencyScore >= 2) return 'AT_RISK';
+  if (recencyScore === 1) return 'LOST';
+  return 'POTENTIAL';
+}
 
 function mapCustomer(doc: FirebaseFirestore.DocumentSnapshot, shopId: string): Customer | null {
   const data = doc.data();
   if (!data) return null;
+
+  const totalOrders = data.totalOrders ?? 0;
+  const totalSpent = data.totalSpent ?? 0;
+  const lastOrderDate = data.lastOrderDate?.toDate();
 
   return {
     id: doc.id,
@@ -12,9 +45,10 @@ function mapCustomer(doc: FirebaseFirestore.DocumentSnapshot, shopId: string): C
     telegramId: data.telegramId,
     name: data.name,
     phone: data.phone ?? undefined,
-    totalOrders: data.totalOrders ?? 0,
-    totalSpent: data.totalSpent ?? 0,
-    lastOrderDate: data.lastOrderDate?.toDate(),
+    totalOrders,
+    totalSpent,
+    lastOrderDate,
+    segment: calculateSegment(totalOrders, totalSpent, lastOrderDate),
     createdAt: data.createdAt?.toDate() ?? new Date(),
   };
 }
@@ -49,6 +83,7 @@ export async function createCustomer(
     phone: input.phone,
     totalOrders: 0,
     totalSpent: 0,
+    segment: 'POTENTIAL' as CustomerSegment,
     createdAt: new Date(),
   };
 }
@@ -103,16 +138,19 @@ export async function getCustomers(
     .limit(pageSize)
     .get();
 
-  const items = snapshot.docs
+  const data = snapshot.docs
     .map((doc) => mapCustomer(doc, shopId))
     .filter((c): c is Customer => c !== null);
 
+  const totalPages = Math.ceil(total / pageSize);
+
   return {
-    items,
+    data,
     total,
     page,
     pageSize,
-    hasMore: offset + items.length < total,
+    totalPages,
+    hasMore: page < totalPages,
   };
 }
 

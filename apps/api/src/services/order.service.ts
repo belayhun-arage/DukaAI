@@ -158,16 +158,19 @@ export async function getOrders(
     .limit(pageSize)
     .get();
 
-  const items = snapshot.docs
+  const data = snapshot.docs
     .map((doc) => mapOrder(doc, shopId))
     .filter((o): o is Order => o !== null);
 
+  const totalPages = Math.ceil(total / pageSize);
+
   return {
-    items,
+    data,
     total,
     page,
     pageSize,
-    hasMore: offset + items.length < total,
+    totalPages,
+    hasMore: page < totalPages,
   };
 }
 
