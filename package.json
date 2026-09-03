@@ -14,7 +14,7 @@
     "build": "npm run build --workspaces",
     "build:api": "npm run build --workspace=apps/api",
     "build:web": "npm run build --workspace=apps/web",
-    "build:vercel": "npm run build --workspace=packages/shared && npm run build --workspace=apps/web"
+    "build:vercel": "cd packages/shared && npm run build && cd ../../apps/web && npm run build"
   },
   "keywords": [
     "telegram-bot",
