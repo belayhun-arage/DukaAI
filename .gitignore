@@ -50,3 +50,4 @@ ui-debug.log
 *firebase*.json
 *-adminsdk-*.json
 serviceAccount*.json
+.vercel
