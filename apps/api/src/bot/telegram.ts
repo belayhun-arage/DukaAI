@@ -17,7 +17,18 @@ export function initializeBot(): TelegramBot | null {
   // Use polling for local development, webhooks for production
   const usePolling = config.isDev && !config.telegram.webhookUrl;
 
-  bot = new TelegramBot(config.telegram.botToken, { polling: usePolling });
+  // Bot options - use custom API URL if configured (for Cloudflare proxy)
+  const botOptions: TelegramBot.ConstructorOptions = {
+    polling: usePolling,
+  };
+
+  // Use Cloudflare Worker proxy if configured (bypasses Railway IP blocks)
+  if (config.telegram.apiUrl) {
+    botOptions.baseApiUrl = config.telegram.apiUrl;
+    console.log(`Using Telegram API proxy: ${config.telegram.apiUrl}`);
+  }
+
+  bot = new TelegramBot(config.telegram.botToken, botOptions);
 
   if (usePolling) {
     console.log('Telegram bot initialized with polling mode');

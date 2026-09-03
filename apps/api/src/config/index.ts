@@ -16,6 +16,7 @@ export const config = {
   telegram: {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '',
     webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || '',
+    apiUrl: process.env.TELEGRAM_API_URL || '', // Cloudflare Worker proxy URL
   },
 
   gemini: {
