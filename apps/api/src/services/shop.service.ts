@@ -52,6 +52,11 @@ export async function getShopById(shopId: string): Promise<Shop | null> {
   return mapShop(doc);
 }
 
+export async function getAllShops(): Promise<Shop[]> {
+  const snapshot = await collections.shops().get();
+  return snapshot.docs.map(mapShop).filter((shop): shop is Shop => shop !== null);
+}
+
 export async function getShopByOwnerTelegramId(telegramId: string): Promise<Shop | null> {
   const snapshot = await collections.shops()
     .where('ownerTelegramId', '==', telegramId)

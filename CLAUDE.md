@@ -54,6 +54,7 @@ npm run dev:web     # Web on port 5173
 | **Validation** | Zod |
 | **Hosting** | Railway (backend) + Vercel (frontend) |
 | **Telegram Proxy** | Cloudflare Workers (bypasses Railway IP blocks) |
+| **Scheduling** | cron-job.org (free, unlimited jobs) |
 
 ## Packages
 
@@ -108,6 +109,57 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 | **Backend API** | https://dukaaiapi-production.up.railway.app | ✅ Live |
 | **Telegram Bot** | @fedukaaibot | ✅ Connected |
 | **Cloudflare Proxy** | https://aged-tooth-3094.belayhun24arage.workers.dev | ✅ Active |
+| **Cron Jobs** | cron-job.org | ✅ Configured |
+
+## Cron Jobs (cron-job.org)
+
+Scheduled automation using [cron-job.org](https://cron-job.org) (free tier).
+
+### Configuration
+
+All jobs require header: `x-cron-secret: dukaai-dev-secret-123`
+
+| Job | Endpoint | Schedule | Purpose |
+|-----|----------|----------|---------|
+| **Keep-Alive** | `POST /api/jobs/keep-alive` | Every 10 min | Prevents Railway cold starts |
+| **Daily Summary** | `POST /api/jobs/daily-summary` | Daily 8:00 AM (EAT) | Generates daily reports for shop owners |
+| **Inventory Check** | `POST /api/jobs/inventory-check` | Daily 9:00 AM (EAT) | Alerts on low stock items |
+
+### Setup Instructions
+
+1. Create account at https://cron-job.org
+2. Go to **Create cronjob**
+3. Fill in Title and URL
+4. Set schedule (Every X minutes or Every day at HH:MM)
+5. Expand **Advanced** section:
+   - Time zone: `Africa/Addis_Ababa`
+   - Request method: `POST`
+6. Click **Add header** twice to add:
+   - `x-cron-secret: dukaai-dev-secret-123`
+   - `Content-Type: application/json`
+7. Enable notifications on failure
+8. Click **Create**
+
+See `docs/cron-jobs-implementation.md` for detailed configuration.
+
+### Testing Endpoints
+
+```bash
+# Keep-alive
+curl -X POST https://dukaaiapi-production.up.railway.app/api/jobs/keep-alive \
+  -H "x-cron-secret: dukaai-dev-secret-123" \
+  -H "Content-Type: application/json"
+
+# Daily summary
+curl -X POST https://dukaaiapi-production.up.railway.app/api/jobs/daily-summary \
+  -H "x-cron-secret: dukaai-dev-secret-123" \
+  -H "Content-Type: application/json"
+
+# Inventory check
+curl -X POST https://dukaaiapi-production.up.railway.app/api/jobs/inventory-check \
+  -H "x-cron-secret: dukaai-dev-secret-123" \
+  -H "Content-Type: application/json"
+```
 
 ## Current Implementation Status
 
@@ -131,12 +183,10 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 - **Deployment: Railway (API) + Vercel (frontend)**
 - **Telegram webhook configured and receiving updates**
 - **Cloudflare Workers proxy for Telegram API (bypasses Railway IP blocks)**
-
-**TODO:**
-- cron-job.org webhook configuration (daily summaries, inventory alerts)
-- Groq/Whisper voice transcription for voice messages
-- XState workflow engine for conversation state management
-- SendGrid email notifications
+- **cron-job.org scheduled jobs (keep-alive, daily summary, inventory check)**
+- **Groq/Whisper voice transcription (Amharic + English)**
+- **Conversation state management with confirmation flow (inline buttons)**
+- **SendGrid skipped** - Telegram notifications sufficient, exceeds 2 API requirement
 
 ## API Endpoints (Implemented)
 

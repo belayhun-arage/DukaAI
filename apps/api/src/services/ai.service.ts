@@ -19,7 +19,7 @@ function getModel() {
   if (!genAI) {
     throw new Error('Gemini not initialized');
   }
-  return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 }
 
 /**
