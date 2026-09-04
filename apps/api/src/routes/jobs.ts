@@ -122,7 +122,7 @@ router.post('/daily-summary', verifyCronSecret, async (req: Request, res: Respon
           cancelledCount,
           topProducts,
           lowStockProducts: lowStockProducts.map((p) => ({ name: p.name, stockQty: p.stockQty })),
-          inactiveCustomers: [], // TODO: implement inactive customer tracking
+          inactiveCustomers: [],
         });
 
         // Send to shop owner

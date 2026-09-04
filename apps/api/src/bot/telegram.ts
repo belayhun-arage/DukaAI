@@ -389,8 +389,6 @@ async function handleDeliver(chatId: number, userId: string, orderRef?: string):
         `💰 Amount: ${order.totalAmount.toLocaleString()} ${shop.settings.currency}`,
       { parse_mode: 'Markdown' }
     );
-
-    // TODO: Notify customer
   } catch (error: any) {
     console.error('Error delivering order:', error);
     if (error.message?.includes('Invalid status transition')) {
@@ -476,8 +474,6 @@ async function handleConfirm(chatId: number, userId: string, orderRef?: string):
         `📝 Items: ${order.items.map((i) => `${i.qty}x ${i.productName}`).join(', ')}`,
       { parse_mode: 'Markdown' }
     );
-
-    // TODO: Notify customer
   } catch (error: any) {
     console.error('Error confirming order:', error);
     if (error.message?.includes('Invalid status transition')) {
@@ -503,7 +499,6 @@ async function handleNaturalLanguage(
 
     // Detect intent using Gemini
     const intent = await aiService.detectIntent(text);
-    console.log(`Intent detected for "${text}": ${intent}`);
 
     switch (intent) {
       case 'GREETING':
@@ -598,7 +593,6 @@ async function handleOrderIntent(
 
   // Parse order using Gemini
   const parsedOrder = await aiService.parseOrder(text, products);
-  console.log('Parsed order:', JSON.stringify(parsedOrder, null, 2));
 
   if (parsedOrder.needsClarification || parsedOrder.items.length === 0) {
     await bot.sendMessage(
