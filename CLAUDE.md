@@ -52,7 +52,8 @@ npm run dev:web     # Web on port 5173
 | **Bot** | node-telegram-bot-api |
 | **Workflow** | XState |
 | **Validation** | Zod |
-| **Hosting** | Render (backend) + Vercel (frontend) |
+| **Hosting** | Railway (backend) + Vercel (frontend) |
+| **Telegram Proxy** | Cloudflare Workers (bypasses Railway IP blocks) |
 
 ## Packages
 
@@ -91,10 +92,22 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 |----------|---------|-------|
 | `FIREBASE_*` | Firestore | Spark plan (free) |
 | `TELEGRAM_BOT_TOKEN` | Telegram | From BotFather |
+| `TELEGRAM_WEBHOOK_URL` | Telegram | Webhook endpoint URL |
+| `TELEGRAM_API_URL` | Cloudflare Workers | Proxy to bypass Railway IP blocks |
 | `GEMINI_API_KEY` | Google AI Studio | Free tier |
 | `GROQ_API_KEY` | Groq | Whisper transcription |
 | `SENDGRID_API_KEY` | SendGrid | Free tier (100/day) |
 | `CRON_SECRET` | cron-job.org | Webhook auth |
+| `FRONTEND_URL` | CORS | Frontend URL for CORS |
+
+## Deployment URLs
+
+| Service | URL | Status |
+|---------|-----|--------|
+| **Frontend** | https://dukaai-web.vercel.app | ✅ Live |
+| **Backend API** | https://dukaaiapi-production.up.railway.app | ✅ Live |
+| **Telegram Bot** | @fedukaaibot | ✅ Connected |
+| **Cloudflare Proxy** | https://aged-tooth-3094.belayhun24arage.workers.dev | ✅ Active |
 
 ## Current Implementation Status
 
@@ -115,13 +128,15 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 - Customers page with customer list and profile detail modal
 - Analytics page with sales charts (Recharts) and top products
 - Settings page with shop creation, settings management, notifications
+- **Deployment: Railway (API) + Vercel (frontend)**
+- **Telegram webhook configured and receiving updates**
+- **Cloudflare Workers proxy for Telegram API (bypasses Railway IP blocks)**
 
 **TODO:**
+- cron-job.org webhook configuration (daily summaries, inventory alerts)
 - Groq/Whisper voice transcription for voice messages
 - XState workflow engine for conversation state management
 - SendGrid email notifications
-- Deployment to Render (API) + Vercel (web)
-- cron-job.org webhook configuration
 
 ## API Endpoints (Implemented)
 
