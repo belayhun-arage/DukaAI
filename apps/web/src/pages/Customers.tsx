@@ -3,6 +3,7 @@ import { Search, Users, TrendingUp, AlertTriangle, Star, RefreshCw, X } from 'lu
 import type { CustomerSegment, Order } from '@dukaai/shared';
 import { useCustomers, useCustomerDetail } from '../hooks/useCustomers';
 import { useShop } from '../context/ShopContext';
+import { SkeletonTable, Skeleton } from '../components/Skeleton';
 
 const segmentColors: Record<CustomerSegment, { bg: string; text: string; label: string }> = {
   CHAMPION: { bg: 'bg-green-100', text: 'text-green-800', label: 'Champion' },
@@ -149,9 +150,7 @@ export default function Customers() {
 
       {/* Customers Table */}
       {isLoading && customers.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-        </div>
+        <SkeletonTable rows={5} columns={6} />
       ) : (
         <div className="card overflow-hidden p-0">
           <table className="w-full">
@@ -224,8 +223,41 @@ export default function Customers() {
             </div>
 
             {isLoadingDetail ? (
-              <div className="flex items-center justify-center py-12">
-                <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
+              <div className="p-6 space-y-6">
+                {/* Customer Info Skeleton */}
+                <div className="text-center">
+                  <Skeleton className="w-16 h-16 rounded-full mx-auto mb-4" />
+                  <Skeleton className="h-6 w-32 mx-auto mb-2" />
+                  <Skeleton className="h-4 w-24 mx-auto mb-2" />
+                  <Skeleton className="h-6 w-20 mx-auto rounded-full" />
+                </div>
+                {/* Stats Skeleton */}
+                <div className="grid grid-cols-3 gap-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+                      <Skeleton className="h-8 w-12 mx-auto mb-2" />
+                      <Skeleton className="h-4 w-16 mx-auto" />
+                    </div>
+                  ))}
+                </div>
+                {/* Orders Skeleton */}
+                <div>
+                  <Skeleton className="h-5 w-28 mb-3" />
+                  <div className="space-y-3">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-20" />
+                          <Skeleton className="h-3 w-16" />
+                        </div>
+                        <div className="text-right space-y-1">
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-14 rounded-full" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : selectedCustomer ? (
               <div className="p-6 space-y-6">

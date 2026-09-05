@@ -3,6 +3,7 @@ import { Search, Filter, RefreshCw, AlertTriangle, Package, X } from 'lucide-rea
 import type { Order, OrderStatus } from '@dukaai/shared';
 import { useOrders } from '../hooks/useOrders';
 import { useShop } from '../context/ShopContext';
+import { SkeletonTable } from '../components/Skeleton';
 
 const statusOptions: (OrderStatus | 'ALL')[] = ['ALL', 'NEW', 'CONFIRMED', 'PAID', 'READY', 'DELIVERED', 'CANCELLED'];
 
@@ -143,9 +144,7 @@ export default function Orders() {
 
       {/* Orders List */}
       {isLoading && orders.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-        </div>
+        <SkeletonTable rows={5} columns={7} />
       ) : (
         <div className="card overflow-hidden p-0">
           <table className="w-full">

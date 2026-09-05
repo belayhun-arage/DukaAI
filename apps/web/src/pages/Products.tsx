@@ -3,6 +3,7 @@ import { Search, Plus, Package, AlertTriangle, RefreshCw, X, Trash2, Edit2 } fro
 import type { Product } from '@dukaai/shared';
 import { useProducts, useLowStockProducts } from '../hooks/useProducts';
 import { useShop } from '../context/ShopContext';
+import { SkeletonProductGrid } from '../components/Skeleton';
 
 interface ProductFormData {
   name: string;
@@ -247,9 +248,7 @@ export default function Products() {
 
       {/* Products Grid */}
       {isLoading && products.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-        </div>
+        <SkeletonProductGrid count={6} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => {

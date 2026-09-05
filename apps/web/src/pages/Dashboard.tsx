@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { analyticsApi } from '../services/api';
+import { DashboardSkeleton } from '../components/Skeleton';
 import type { DashboardStats, Order, Product } from '@dukaai/shared';
 
 function getStatusBadge(status: string) {
@@ -71,11 +72,7 @@ export default function Dashboard() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (error) {

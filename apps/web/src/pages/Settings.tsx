@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Store, Bell, Bot, Save, RefreshCw, Plus } from 'lucide-react';
+import { Store, Bell, Bot, Save, Plus } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { SettingsSkeleton } from '../components/Skeleton';
 
 export default function Settings() {
   const { shop, isLoading, updateShop, updateSettings, createShop, selectShop } = useShop();
@@ -132,11 +133,7 @@ export default function Settings() {
   }, [saveMessage]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-      </div>
-    );
+    return <SettingsSkeleton />;
   }
 
   // No shop selected - show create/select form

@@ -13,6 +13,7 @@ import { TrendingUp, ShoppingCart, Users, DollarSign, RefreshCw, AlertTriangle, 
 import { useAnalyticsSummary } from '../hooks/useAnalytics';
 import { useCustomers } from '../hooks/useCustomers';
 import { useShop } from '../context/ShopContext';
+import { SkeletonChart, SkeletonListCard, Skeleton } from '../components/Skeleton';
 import type { CustomerSegment } from '@dukaai/shared';
 
 const segmentConfig: Record<CustomerSegment, { label: string; color: string }> = {
@@ -151,9 +152,29 @@ export default function Analytics() {
 
       {/* Charts Row */}
       {isLoading && salesData.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <RefreshCw className="w-8 h-8 text-primary-600 animate-spin" />
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonListCard title itemCount={5} />
+            <div className="card">
+              <Skeleton className="h-6 w-40 mb-6" />
+              <div className="space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i}>
+                    <div className="flex items-center justify-between mb-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="h-2 w-full rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
