@@ -26,7 +26,7 @@ const emptyForm: ProductFormData = {
 };
 
 export default function Products() {
-  const { shop } = useShop();
+  const { shop, isLoading: isShopLoading } = useShop();
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
@@ -147,6 +147,12 @@ export default function Products() {
     }
   };
 
+  // Show loading skeleton while shop is loading
+  if (isShopLoading || (isLoading && products.length === 0)) {
+    return <SkeletonProductGrid count={6} />;
+  }
+
+  // Show placeholder if no shop selected (only after loading is complete)
   if (!shop) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -247,10 +253,7 @@ export default function Products() {
       </div>
 
       {/* Products Grid */}
-      {isLoading && products.length === 0 ? (
-        <SkeletonProductGrid count={6} />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product) => {
             const isLowStock = product.stockQty <= product.lowStockThreshold;
             return (
@@ -310,9 +313,8 @@ export default function Products() {
             );
           })}
         </div>
-      )}
 
-      {filteredProducts.length === 0 && !isLoading && (
+      {filteredProducts.length === 0 && (
         <div className="text-center py-12">
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">No products found</p>

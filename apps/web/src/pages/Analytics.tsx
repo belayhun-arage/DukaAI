@@ -25,7 +25,7 @@ const segmentConfig: Record<CustomerSegment, { label: string; color: string }> =
 };
 
 export default function Analytics() {
-  const { shop } = useShop();
+  const { shop, isLoading: isShopLoading } = useShop();
 
   const {
     salesData,
@@ -58,6 +58,24 @@ export default function Analytics() {
 
   const totalCustomerCount = customers.length || 1;
 
+  // Show loading skeleton while shop is loading
+  if (isShopLoading || (isLoading && salesData.length === 0)) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonChart key={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <SkeletonChart />
+          <SkeletonChart />
+        </div>
+      </div>
+    );
+  }
+
+  // Show placeholder if no shop selected (only after loading is complete)
   if (!shop) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">

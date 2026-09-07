@@ -14,7 +14,7 @@ const segmentColors: Record<CustomerSegment, { bg: string; text: string; label: 
 };
 
 export default function Customers() {
-  const { shop } = useShop();
+  const { shop, isLoading: isShopLoading } = useShop();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
@@ -41,6 +41,12 @@ export default function Customers() {
   const atRisk = customers.filter((c) => c.segment === 'AT_RISK').length;
   const totalRevenue = customers.reduce((sum, c) => sum + c.totalSpent, 0);
 
+  // Show loading skeleton while shop is loading
+  if (isShopLoading || (isLoading && customers.length === 0)) {
+    return <SkeletonTable rows={5} columns={6} />;
+  }
+
+  // Show placeholder if no shop selected (only after loading is complete)
   if (!shop) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -149,10 +155,7 @@ export default function Customers() {
       </div>
 
       {/* Customers Table */}
-      {isLoading && customers.length === 0 ? (
-        <SkeletonTable rows={5} columns={6} />
-      ) : (
-        <div className="card overflow-hidden p-0">
+      <div className="card overflow-hidden p-0">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -206,7 +209,6 @@ export default function Customers() {
             </div>
           )}
         </div>
-      )}
 
       {/* Customer Detail Modal */}
       {selectedCustomerId && (

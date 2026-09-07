@@ -26,7 +26,7 @@ const nextStatus: Record<OrderStatus, OrderStatus | null> = {
 };
 
 export default function Orders() {
-  const { shop } = useShop();
+  const { shop, isLoading: isShopLoading } = useShop();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'ALL'>('ALL');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -66,6 +66,12 @@ export default function Orders() {
     }
   };
 
+  // Show loading skeleton while shop is loading
+  if (isShopLoading || (isLoading && orders.length === 0)) {
+    return <SkeletonTable rows={5} columns={7} />;
+  }
+
+  // Show placeholder if no shop selected (only after loading is complete)
   if (!shop) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -143,10 +149,7 @@ export default function Orders() {
       </div>
 
       {/* Orders List */}
-      {isLoading && orders.length === 0 ? (
-        <SkeletonTable rows={5} columns={7} />
-      ) : (
-        <div className="card overflow-hidden p-0">
+      <div className="card overflow-hidden p-0">
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -213,7 +216,6 @@ export default function Orders() {
             </div>
           )}
         </div>
-      )}
 
       {/* Order Detail Modal */}
       {selectedOrder && (

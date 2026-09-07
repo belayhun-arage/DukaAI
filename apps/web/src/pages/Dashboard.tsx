@@ -26,7 +26,7 @@ function getStatusBadge(status: string) {
 }
 
 export default function Dashboard() {
-  const { shop } = useShop();
+  const { shop, isLoading: isShopLoading } = useShop();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +55,12 @@ export default function Dashboard() {
     }
   }
 
-  // Show placeholder if no shop selected
+  // Show loading skeleton while shop is loading or data is loading
+  if (isShopLoading || isLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  // Show placeholder if no shop selected (only after loading is complete)
   if (!shop) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -69,10 +74,6 @@ export default function Dashboard() {
         </a>
       </div>
     );
-  }
-
-  if (isLoading) {
-    return <DashboardSkeleton />;
   }
 
   if (error) {
