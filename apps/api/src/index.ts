@@ -15,8 +15,12 @@ import analyticsRoutes from './routes/analytics';
 import jobRoutes from './routes/jobs';
 import webhookRoutes from './routes/webhooks';
 import aiRoutes from './routes/ai';
+import agentRoutes from './routes/agents';
+import forecastRoutes from './routes/forecast';
 import { initializeBot } from './bot/telegram';
 import { initializeGemini } from './services/ai.service';
+import { initializeAgent } from './services/agent.service';
+import { initializeForecastService } from './services/forecast.service';
 
 const app = express();
 
@@ -31,6 +35,12 @@ const botReady = initializeBot() !== null;
 
 // Initialize Gemini AI
 const geminiReady = initializeGemini();
+
+// Initialize Agent service (with tool use)
+const agentReady = initializeAgent();
+
+// Initialize Forecast service
+const forecastReady = initializeForecastService();
 
 // Middleware
 app.use(helmet());
@@ -52,6 +62,8 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/agents', agentRoutes);
+app.use('/api/forecast', forecastRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -83,6 +95,8 @@ app.listen(config.port, () => {
 ║  Firebase: ${(firebaseReady ? 'Connected' : 'Mock mode').padEnd(24)}║
 ║  Telegram Bot: ${(botReady ? 'Ready' : 'Not configured').padEnd(20)}║
 ║  Gemini AI: ${(geminiReady ? 'Ready' : 'Not configured').padEnd(23)}║
+║  AI Agent: ${(agentReady ? 'Ready (12 tools)' : 'Not configured').padEnd(24)}║
+║  Forecasting: ${(forecastReady ? 'Ready' : 'Not configured').padEnd(21)}║
 ╚════════════════════════════════════════╝
   `);
 });

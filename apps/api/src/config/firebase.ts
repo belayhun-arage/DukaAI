@@ -59,4 +59,6 @@ export const collections = {
   customers: (shopId: string) => getFirestore().collection(`shops/${shopId}/customers`),
   sessions: () => getFirestore().collection('sessions'),
   dailyStats: (shopId: string) => getFirestore().collection(`shops/${shopId}/dailyStats`),
+  agentTraces: (shopId: string) => getFirestore().collection(`shops/${shopId}/agentTraces`),
+  forecasts: (shopId: string) => getFirestore().collection(`shops/${shopId}/forecasts`),
 };

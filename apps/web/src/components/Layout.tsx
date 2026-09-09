@@ -5,6 +5,8 @@ import {
   Package,
   Users,
   BarChart3,
+  Bot,
+  TrendingUp,
   Settings,
   Store,
 } from 'lucide-react';
@@ -15,6 +17,8 @@ const navigation = [
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Customers', href: '/customers', icon: Users },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+  { name: 'AI Agent', href: '/agent', icon: Bot },
+  { name: 'Forecast', href: '/forecast', icon: TrendingUp },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 

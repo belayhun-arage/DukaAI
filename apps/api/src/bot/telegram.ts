@@ -8,6 +8,8 @@ import * as customerService from '../services/customer.service';
 import * as voiceService from '../services/voice.service';
 import * as aiService from '../services/ai.service';
 import * as sessionService from '../services/session.service';
+import * as agentService from '../services/agent.service';
+import * as forecastService from '../services/forecast.service';
 
 let bot: TelegramBot | null = null;
 
@@ -150,6 +152,14 @@ async function handleCommand(
       await handleConfirm(chatId, userId, args[0]);
       break;
 
+    case '/agent':
+      await handleAgentCommand(chatId, userId, userName, args.join(' '));
+      break;
+
+    case '/forecast':
+      await handleForecastCommand(chatId, userId);
+      break;
+
     default:
       await bot.sendMessage(chatId, 'Unknown command. Type /help for available commands.');
   }
@@ -198,9 +208,11 @@ async function handleHelp(chatId: number, userId: string): Promise<void> {
         `/status - Today's summary\n` +
         `/orders - View pending orders\n` +
         `/inventory - Low stock alerts\n` +
+        `/forecast - Demand forecast & restock suggestions\n` +
         `/confirm <order#> - Confirm an order\n` +
         `/pay <order#> - Mark order as paid\n` +
         `/deliver <order#> - Mark order as delivered\n` +
+        `/agent <message> - Ask AI agent (with tool use)\n` +
         `/help - Show this message`,
       { parse_mode: 'Markdown' }
     );
@@ -902,5 +914,198 @@ async function handleOrderCallback(
       await bot.sendMessage(chatId, 'Sorry, there was an error creating your order. Please try again.');
       sessionService.deleteSession(chatId);
     }
+  }
+}
+
+// Handle /agent command - runs the AI agent with tool use
+async function handleAgentCommand(
+  chatId: number,
+  userId: string,
+  userName: string,
+  input: string
+): Promise<void> {
+  if (!bot) return;
+
+  if (!input.trim()) {
+    await bot.sendMessage(
+      chatId,
+      `🤖 *AI Agent Mode*\n\n` +
+        `Use this to interact with the AI agent that can use tools.\n\n` +
+        `Example:\n` +
+        `/agent What products do you have?\n` +
+        `/agent Check inventory for low stock items\n` +
+        `/agent Show me today's sales stats`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  // Find shop
+  let shop = await shopService.getShopByOwnerTelegramId(userId);
+  if (!shop) {
+    const shops = await shopService.getAllShops();
+    if (shops.length === 0) {
+      await bot.sendMessage(chatId, 'No shops available. Please set up a shop first.');
+      return;
+    }
+    shop = shops[shops.length - 1];
+  }
+
+  // Send typing indicator
+  await bot.sendChatAction(chatId, 'typing');
+
+  // Show "thinking" message
+  const thinkingMsg = await bot.sendMessage(chatId, '🤖 Agent is thinking...');
+
+  try {
+    // Run the agent
+    const result = await agentService.runAgent({
+      shopId: shop.id,
+      input,
+      triggeredBy: 'telegram',
+      context: {
+        customerId: userId,
+        customerName: userName,
+        chatId: chatId.toString(),
+      },
+    });
+
+    // Build response with tool usage info
+    let response = `🤖 *AI Agent Response*\n\n${result.response}`;
+
+    if (result.toolsUsed.length > 0) {
+      response += `\n\n🔧 *Tools used:* ${result.toolsUsed.map(t => t.replace(/_/g, ' ')).join(', ')}`;
+    }
+
+    response += `\n\n📊 Confidence: ${Math.round(result.confidence * 100)}%`;
+
+    if (result.requiresHumanReview) {
+      response += `\n⚠️ _${result.reviewReason}_`;
+    }
+
+    // Delete thinking message and send response
+    try {
+      await bot.deleteMessage(chatId, thinkingMsg.message_id);
+    } catch (err) {
+      // Ignore if message already deleted
+    }
+
+    await bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+
+  } catch (error) {
+    console.error('Agent error:', error);
+
+    // Delete thinking message
+    try {
+      await bot.deleteMessage(chatId, thinkingMsg.message_id);
+    } catch (err) {
+      // Ignore
+    }
+
+    await bot.sendMessage(
+      chatId,
+      `❌ Agent error: ${error instanceof Error ? error.message : 'Unknown error'}\n\nPlease try again.`
+    );
+  }
+}
+
+// Handle /forecast command - shows demand forecast and restock suggestions
+async function handleForecastCommand(chatId: number, userId: string): Promise<void> {
+  if (!bot) return;
+
+  const shop = await shopService.getShopByOwnerTelegramId(userId);
+
+  if (!shop) {
+    await bot.sendMessage(chatId, '❌ You are not registered as a shop owner.');
+    return;
+  }
+
+  // Send typing indicator
+  await bot.sendChatAction(chatId, 'typing');
+
+  // Show generating message
+  const genMsg = await bot.sendMessage(chatId, '📊 Generating demand forecast...');
+
+  try {
+    // Get or generate forecast
+    let forecast = await forecastService.getLatestForecast(shop.id);
+
+    // If no forecast or older than 24 hours, generate new one
+    if (!forecast || (Date.now() - new Date(forecast.generatedAt).getTime()) > 24 * 60 * 60 * 1000) {
+      forecast = await forecastService.generateForecast(shop.id, 30);
+    }
+
+    // Delete generating message
+    try {
+      await bot.deleteMessage(chatId, genMsg.message_id);
+    } catch (err) {
+      // Ignore
+    }
+
+    // Build forecast message
+    let message = `📊 *Demand Forecast Report*\n`;
+    message += `_Generated: ${new Date(forecast.generatedAt).toLocaleDateString()}_\n\n`;
+
+    message += `📦 *Products Analyzed:* ${forecast.totalProductsAnalyzed}\n`;
+    message += `💰 *Predicted Revenue (7d):* ${forecast.predictedRevenue7Days.toLocaleString()} ${shop.settings.currency}\n`;
+    message += `💰 *Predicted Revenue (30d):* ${forecast.predictedRevenue30Days.toLocaleString()} ${shop.settings.currency}\n\n`;
+
+    // Critical restocks
+    if (forecast.criticalRestockCount > 0) {
+      message += `🔴 *CRITICAL RESTOCK (${forecast.criticalRestockCount})*\n`;
+      const critical = forecast.predictions.filter(p => p.restockUrgency === 'critical');
+      critical.slice(0, 5).forEach(p => {
+        message += `• ${p.productName}\n`;
+        message += `  Stock: ${p.currentStock} | Days left: ${p.daysUntilStockout || '~0'}\n`;
+        message += `  Restock: ${p.recommendedRestockQty} units\n`;
+      });
+      message += '\n';
+    }
+
+    // High urgency restocks
+    if (forecast.highRestockCount > 0) {
+      message += `🟠 *HIGH PRIORITY (${forecast.highRestockCount})*\n`;
+      const high = forecast.predictions.filter(p => p.restockUrgency === 'high');
+      high.slice(0, 3).forEach(p => {
+        message += `• ${p.productName}: ${p.currentStock} left, ~${p.daysUntilStockout} days\n`;
+      });
+      message += '\n';
+    }
+
+    // Trending products
+    const trending = forecast.predictions.filter(p => p.salesTrend === 'increasing').slice(0, 3);
+    if (trending.length > 0) {
+      message += `📈 *Trending Up:* ${trending.map(p => p.productName).join(', ')}\n\n`;
+    }
+
+    // AI Insights
+    if (forecast.insights.length > 0) {
+      message += `💡 *AI Insights:*\n`;
+      forecast.insights.slice(0, 3).forEach(insight => {
+        const emoji = insight.severity === 'critical' ? '🔴' :
+                      insight.severity === 'warning' ? '🟠' : 'ℹ️';
+        message += `${emoji} ${insight.title}\n`;
+        if (insight.suggestedAction) {
+          message += `   _${insight.suggestedAction}_\n`;
+        }
+      });
+    }
+
+    await bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+
+  } catch (error) {
+    console.error('Forecast error:', error);
+
+    // Delete generating message
+    try {
+      await bot.deleteMessage(chatId, genMsg.message_id);
+    } catch (err) {
+      // Ignore
+    }
+
+    await bot.sendMessage(
+      chatId,
+      `❌ Error generating forecast: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }

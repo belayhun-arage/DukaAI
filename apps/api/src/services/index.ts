@@ -5,3 +5,7 @@ export * as orderService from './order.service';
 export * as aiService from './ai.service';
 export * as voiceService from './voice.service';
 export * as sessionService from './session.service';
+export * as toolsService from './tools.service';
+export * as agentService from './agent.service';
+export * as traceService from './trace.service';
+export * as forecastService from './forecast.service';

@@ -4,6 +4,7 @@ import * as shopService from '../services/shop.service';
 import * as orderService from '../services/order.service';
 import * as productService from '../services/product.service';
 import * as aiService from '../services/ai.service';
+import * as forecastService from '../services/forecast.service';
 import { getBot } from '../bot/telegram';
 
 const router = Router();
@@ -230,6 +231,68 @@ router.post('/inventory-check', verifyCronSecret, async (req: Request, res: Resp
     res.status(500).json({
       success: false,
       error: 'Failed to run inventory check',
+    });
+  }
+});
+
+// Demand forecast job - generates weekly demand forecasts
+router.post('/demand-forecast', verifyCronSecret, async (req: Request, res: Response) => {
+  try {
+    const bot = getBot();
+    const shops = await shopService.getAllShops();
+    const results: Array<{
+      shopId: string;
+      shopName: string;
+      status: string;
+      criticalCount?: number;
+      highCount?: number;
+    }> = [];
+
+    for (const shop of shops) {
+      try {
+        // Generate forecast
+        const forecast = await forecastService.generateForecast(shop.id, 30);
+
+        results.push({
+          shopId: shop.id,
+          shopName: shop.name,
+          status: 'generated',
+          criticalCount: forecast.criticalRestockCount,
+          highCount: forecast.highRestockCount,
+        });
+
+        // Send notification if there are critical items and bot is available
+        if (bot && shop.ownerTelegramId && (forecast.criticalRestockCount > 0 || forecast.highRestockCount > 0)) {
+          const summary = await forecastService.generateForecastSummary(shop.id);
+          await bot.sendMessage(parseInt(shop.ownerTelegramId), summary, { parse_mode: 'Markdown' });
+        }
+
+      } catch (shopError) {
+        console.error(`Error generating forecast for shop ${shop.id}:`, shopError);
+        results.push({
+          shopId: shop.id,
+          shopName: shop.name,
+          status: 'error',
+        });
+      }
+    }
+
+    console.log('Demand forecast results:', results);
+
+    res.json({
+      success: true,
+      data: {
+        message: 'Demand forecast job executed',
+        shopsProcessed: results.length,
+        results,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error running demand forecast:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run demand forecast',
     });
   }
 });

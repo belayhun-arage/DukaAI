@@ -7,6 +7,12 @@ import type {
   PaginatedResponse,
   ApiResponse,
   OrderStatus,
+  AgentTrace,
+  AgentRunResponse,
+  ToolDefinition,
+  ForecastReport,
+  RestockRecommendation,
+  DemandPrediction,
 } from '@dukaai/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -360,6 +366,136 @@ export const healthApi = {
 
   async ready(): Promise<{ status: string; services: { firebase: string } }> {
     const response = await apiFetch<ApiResponse<{ status: string; services: { firebase: string } }>>('/health/ready');
+    return response.data!;
+  },
+};
+
+// ============ Agent API ============
+
+export const agentApi = {
+  async run(input: string, context?: {
+    customerId?: string;
+    customerName?: string;
+    sessionId?: string;
+  }): Promise<AgentRunResponse> {
+    const response = await apiFetch<ApiResponse<AgentRunResponse>>('/agents/run', {
+      method: 'POST',
+      body: JSON.stringify({ input, context }),
+    });
+    return response.data!;
+  },
+
+  async listTraces(options?: {
+    limit?: number;
+    status?: AgentTrace['status'];
+    triggeredBy?: AgentTrace['triggeredBy'];
+  }): Promise<AgentTrace[]> {
+    const params = new URLSearchParams();
+    if (options?.limit) params.set('limit', String(options.limit));
+    if (options?.status) params.set('status', options.status);
+    if (options?.triggeredBy) params.set('triggeredBy', options.triggeredBy);
+
+    const response = await apiFetch<ApiResponse<AgentTrace[]>>(`/agents/traces?${params}`);
+    return response.data!;
+  },
+
+  async getTrace(traceId: string): Promise<AgentTrace> {
+    const response = await apiFetch<ApiResponse<AgentTrace>>(`/agents/traces/${traceId}`);
+    return response.data!;
+  },
+
+  async getStats(since?: Date): Promise<{
+    totalRuns: number;
+    successfulRuns: number;
+    failedRuns: number;
+    avgExecutionTimeMs: number;
+    totalToolCalls: number;
+    toolUsage: Record<string, number>;
+    triggerBreakdown: Record<string, number>;
+  }> {
+    const params = since ? `?since=${since.toISOString()}` : '';
+    const response = await apiFetch<ApiResponse<{
+      totalRuns: number;
+      successfulRuns: number;
+      failedRuns: number;
+      avgExecutionTimeMs: number;
+      totalToolCalls: number;
+      toolUsage: Record<string, number>;
+      triggerBreakdown: Record<string, number>;
+    }>>(`/agents/stats${params}`);
+    return response.data!;
+  },
+
+  async getRecentToolCalls(limit?: number): Promise<Array<{
+    traceId: string;
+    toolName: string;
+    success: boolean;
+    executionTimeMs: number;
+    timestamp: Date;
+    arguments: Record<string, unknown>;
+  }>> {
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await apiFetch<ApiResponse<Array<{
+      traceId: string;
+      toolName: string;
+      success: boolean;
+      executionTimeMs: number;
+      timestamp: Date;
+      arguments: Record<string, unknown>;
+    }>>>(`/agents/tool-calls${params}`);
+    return response.data!;
+  },
+
+  async getTools(): Promise<{ tools: ToolDefinition[]; count: number }> {
+    const response = await apiFetch<ApiResponse<{ tools: ToolDefinition[]; count: number }>>('/agents/tools');
+    return response.data!;
+  },
+};
+
+// ============ Forecast API ============
+
+export const forecastApi = {
+  async generate(periodDays?: number): Promise<ForecastReport> {
+    const response = await apiFetch<ApiResponse<ForecastReport>>('/forecast/generate', {
+      method: 'POST',
+      body: JSON.stringify({ periodDays }),
+    });
+    return response.data!;
+  },
+
+  async getLatest(): Promise<ForecastReport | null> {
+    try {
+      const response = await apiFetch<ApiResponse<ForecastReport>>('/forecast/latest');
+      return response.data!;
+    } catch (error) {
+      // 404 means no forecast exists
+      return null;
+    }
+  },
+
+  async getHistory(limit?: number): Promise<ForecastReport[]> {
+    const params = limit ? `?limit=${limit}` : '';
+    const response = await apiFetch<ApiResponse<ForecastReport[]>>(`/forecast/history${params}`);
+    return response.data!;
+  },
+
+  async getRestock(): Promise<{
+    recommendations: RestockRecommendation[];
+    totalItems: number;
+    criticalCount: number;
+    highCount: number;
+  }> {
+    const response = await apiFetch<ApiResponse<{
+      recommendations: RestockRecommendation[];
+      totalItems: number;
+      criticalCount: number;
+      highCount: number;
+    }>>('/forecast/restock');
+    return response.data!;
+  },
+
+  async getProductPrediction(productId: string): Promise<DemandPrediction> {
+    const response = await apiFetch<ApiResponse<DemandPrediction>>(`/forecast/product/${productId}`);
     return response.data!;
   },
 };

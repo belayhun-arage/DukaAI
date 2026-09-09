@@ -124,6 +124,7 @@ All jobs require header: `x-cron-secret: dukaai-dev-secret-123`
 | **Keep-Alive** | `POST /api/jobs/keep-alive` | Every 10 min | Prevents Railway cold starts |
 | **Daily Summary** | `POST /api/jobs/daily-summary` | Daily 8:00 AM (EAT) | Generates daily reports for shop owners |
 | **Inventory Check** | `POST /api/jobs/inventory-check` | Daily 9:00 AM (EAT) | Alerts on low stock items |
+| **Demand Forecast** | `POST /api/jobs/demand-forecast` | Weekly (Sunday 6:00 AM) | Generates demand forecasts and restock alerts |
 
 ### Setup Instructions
 
@@ -161,7 +162,7 @@ curl -X POST https://dukaaiapi-production.up.railway.app/api/jobs/inventory-chec
   -H "Content-Type: application/json"
 ```
 
-## Implementation Status (COMPLETED - September 5, 2026)
+## Implementation Status (UPDATED - September 9, 2026)
 
 **Completed:**
 - Monorepo structure with npm workspaces
@@ -187,6 +188,63 @@ curl -X POST https://dukaaiapi-production.up.railway.app/api/jobs/inventory-chec
 - **Groq/Whisper voice transcription (Amharic + English)**
 - **Conversation state management with confirmation flow (inline buttons)**
 - **SendGrid skipped** - Telegram notifications sufficient, exceeds 2 API requirement
+
+### AI Agent Enhancements (September 9, 2026)
+
+**Tool Use Architecture:**
+- 12 tools defined for the AI agent to use autonomously
+- Tools: search_products, get_product_details, check_inventory, create_order, get_order_status, update_order_status, get_customer_info, get_customer_orders, send_notification, get_daily_stats, get_low_stock_items, calculate_order_total
+- Gemini function calling integration for intelligent tool selection
+- Automatic tool execution with result handling
+
+**Agent Observability:**
+- Full execution tracing with thoughts, tool calls, and results
+- Agent traces stored in Firestore for history
+- Statistics: total runs, success rate, avg duration, tool usage breakdown
+- Real-time trace inspection with expandable tool call details
+
+**New Telegram Command:**
+- `/agent <message>` - Interact with the AI agent using tool use
+- Shows tools used and confidence score in response
+
+**New Dashboard Pages:**
+- `/agent` - Agent Observability dashboard
+- Test agent directly from the UI
+- View recent traces with filtering
+- Tool usage charts and trigger source breakdown
+- Detailed trace modal with timeline view
+
+### Demand Forecasting Agent (September 9, 2026)
+
+**Autonomous Forecasting:**
+- Analyzes 90 days of order history
+- Calculates sales patterns and trends (increasing/stable/decreasing)
+- Predicts demand for 7 and 30 day periods
+- Generates restock recommendations with urgency levels
+
+**AI-Powered Insights:**
+- Gemini generates actionable business insights
+- Identifies trending products and opportunities
+- Warns about declining sales and risks
+- Suggests specific actions for shop owners
+
+**Restock Intelligence:**
+- Calculates days until stockout per product
+- Urgency levels: critical (3 days), high (7 days), medium (14 days), low (30 days)
+- Recommended restock quantities based on predicted demand
+- Estimated revenue projections
+
+**New Telegram Command:**
+- `/forecast` - Shows demand forecast with restock recommendations
+- Critical and high-priority items highlighted
+- AI insights included in message
+
+**New Dashboard Page:**
+- `/forecast` - Demand Forecast dashboard
+- Predicted demand charts by product
+- Restock recommendations with urgency
+- AI insights cards with severity levels
+- Product prediction detail modal
 
 ## API Endpoints (Implemented)
 
@@ -252,6 +310,23 @@ POST   /api/webhooks/telegram           # Telegram webhook
 GET    /api/webhooks/telegram/info      # Get webhook info
 POST   /api/webhooks/telegram/set-webhook # Set webhook URL
 DELETE /api/webhooks/telegram/webhook   # Delete webhook
+
+# Agent (requires x-shop-id header)
+POST   /api/agents/run          # Run agent with input (returns trace ID)
+GET    /api/agents/traces       # List agent traces
+GET    /api/agents/traces/:id   # Get specific trace with full details
+GET    /api/agents/stats        # Get agent statistics
+GET    /api/agents/tool-calls   # Get recent tool calls
+GET    /api/agents/tools        # Get available tools and schemas
+DELETE /api/agents/traces/cleanup # Delete old traces
+
+# Forecast (requires x-shop-id header)
+POST   /api/forecast/generate   # Generate new demand forecast
+GET    /api/forecast/latest     # Get latest forecast report
+GET    /api/forecast/history    # Get forecast history
+GET    /api/forecast/restock    # Get restock recommendations
+GET    /api/forecast/summary    # Get text summary (for Telegram)
+GET    /api/forecast/product/:id # Get prediction for specific product
 ```
 
 ## Code Conventions

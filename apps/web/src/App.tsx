@@ -5,6 +5,8 @@ import Orders from './pages/Orders';
 import Products from './pages/Products';
 import Customers from './pages/Customers';
 import Analytics from './pages/Analytics';
+import AgentObservability from './pages/AgentObservability';
+import Forecast from './pages/Forecast';
 import Settings from './pages/Settings';
 
 function App() {
@@ -17,6 +19,8 @@ function App() {
         <Route path="products" element={<Products />} />
         <Route path="customers" element={<Customers />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="agent" element={<AgentObservability />} />
+        <Route path="forecast" element={<Forecast />} />
         <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
