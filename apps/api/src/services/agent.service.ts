@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { GoogleGenerativeAI, SchemaType, Schema, FunctionDeclaration, FunctionDeclarationSchema } from '@google/generative-ai';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import {
@@ -56,7 +56,7 @@ export async function runAgent(request: AgentRunRequest): Promise<AgentRunRespon
   try {
     // Get the model with function calling
     const model = genAI.getGenerativeModel({
-      model: 'gemini-3.6-flash',
+      model: 'gemini-2.5-flash',
       tools: [{ functionDeclarations: getGeminiFunctionDeclarations() }],
     });
 
@@ -234,7 +234,7 @@ Process the following customer/owner message and use tools as needed to provide 
 /**
  * Convert tool schemas to Gemini function declarations
  */
-function getGeminiFunctionDeclarations() {
+function getGeminiFunctionDeclarations(): FunctionDeclaration[] {
   return TOOL_SCHEMAS.map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -247,43 +247,52 @@ function getGeminiFunctionDeclarations() {
         ])
       ),
       required: tool.parameters.filter((p) => p.required).map((p) => p.name),
-    },
+    } as FunctionDeclarationSchema,
   }));
 }
 
 /**
  * Build parameter schema including items for arrays
  */
-function buildParameterSchema(p: { type: string; description: string; enum?: string[]; items?: { type: string; properties?: Record<string, { type: string; description?: string }> } }): Record<string, unknown> {
-  const schema: Record<string, unknown> = {
+function buildParameterSchema(p: { type: string; description: string; enum?: string[]; items?: { type: string; properties?: Record<string, { type: string; description?: string }> } }): Schema {
+  // Base schema
+  const baseSchema: Partial<Schema> = {
     type: mapToGeminiType(p.type),
     description: p.description,
   };
 
   if (p.enum) {
-    schema.enum = p.enum;
+    (baseSchema as Schema & { enum: string[] }).enum = p.enum;
   }
 
   // Handle array items
   if (p.type === 'array' && p.items) {
     if (p.items.type === 'object' && p.items.properties) {
-      schema.items = {
-        type: SchemaType.OBJECT,
-        properties: Object.fromEntries(
-          Object.entries(p.items.properties).map(([key, val]) => [
-            key,
-            { type: mapToGeminiType(val.type), description: val.description || '' },
-          ])
-        ),
-      };
+      return {
+        type: SchemaType.ARRAY,
+        description: p.description,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: Object.fromEntries(
+            Object.entries(p.items.properties).map(([key, val]) => [
+              key,
+              { type: mapToGeminiType(val.type), description: val.description || '' } as Schema,
+            ])
+          ),
+        },
+      } as Schema;
     } else {
-      schema.items = {
-        type: mapToGeminiType(p.items.type),
-      };
+      return {
+        type: SchemaType.ARRAY,
+        description: p.description,
+        items: {
+          type: mapToGeminiType(p.items.type),
+        },
+      } as Schema;
     }
   }
 
-  return schema;
+  return baseSchema as Schema;
 }
 
 /**
