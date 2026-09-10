@@ -11,6 +11,10 @@ export interface ToolParameter {
   description: string;
   required: boolean;
   enum?: string[];
+  items?: {
+    type: 'string' | 'number' | 'boolean' | 'object';
+    properties?: Record<string, { type: string; description?: string }>;
+  };
 }
 
 // Tool execution
@@ -127,7 +131,7 @@ export const TOOL_SCHEMAS: ToolDefinition[] = [
     name: 'check_inventory',
     description: 'Check current stock levels for products',
     parameters: [
-      { name: 'productIds', type: 'array', description: 'List of product IDs to check', required: false },
+      { name: 'productIds', type: 'array', description: 'List of product IDs to check', required: false, items: { type: 'string' } },
       { name: 'lowStockOnly', type: 'boolean', description: 'Only return low stock items', required: false },
     ],
   },
@@ -137,7 +141,7 @@ export const TOOL_SCHEMAS: ToolDefinition[] = [
     parameters: [
       { name: 'customerId', type: 'string', description: 'Customer ID', required: true },
       { name: 'customerName', type: 'string', description: 'Customer name', required: true },
-      { name: 'items', type: 'array', description: 'Array of {productId, qty, variant?}', required: true },
+      { name: 'items', type: 'array', description: 'Array of {productId, qty, variant?}', required: true, items: { type: 'object', properties: { productId: { type: 'string' }, qty: { type: 'number' }, variant: { type: 'string' } } } },
       { name: 'notes', type: 'string', description: 'Order notes', required: false },
     ],
   },
@@ -198,7 +202,7 @@ export const TOOL_SCHEMAS: ToolDefinition[] = [
     name: 'calculate_order_total',
     description: 'Calculate the total price for a list of items',
     parameters: [
-      { name: 'items', type: 'array', description: 'Array of {productId, qty}', required: true },
+      { name: 'items', type: 'array', description: 'Array of {productId, qty}', required: true, items: { type: 'object', properties: { productId: { type: 'string' }, qty: { type: 'number' } } } },
     ],
   },
 ];

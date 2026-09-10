@@ -243,16 +243,47 @@ function getGeminiFunctionDeclarations() {
       properties: Object.fromEntries(
         tool.parameters.map((p) => [
           p.name,
-          {
-            type: mapToGeminiType(p.type),
-            description: p.description,
-            ...(p.enum ? { enum: p.enum } : {}),
-          },
+          buildParameterSchema(p),
         ])
       ),
       required: tool.parameters.filter((p) => p.required).map((p) => p.name),
     },
   }));
+}
+
+/**
+ * Build parameter schema including items for arrays
+ */
+function buildParameterSchema(p: { type: string; description: string; enum?: string[]; items?: { type: string; properties?: Record<string, { type: string; description?: string }> } }): Record<string, unknown> {
+  const schema: Record<string, unknown> = {
+    type: mapToGeminiType(p.type),
+    description: p.description,
+  };
+
+  if (p.enum) {
+    schema.enum = p.enum;
+  }
+
+  // Handle array items
+  if (p.type === 'array' && p.items) {
+    if (p.items.type === 'object' && p.items.properties) {
+      schema.items = {
+        type: SchemaType.OBJECT,
+        properties: Object.fromEntries(
+          Object.entries(p.items.properties).map(([key, val]) => [
+            key,
+            { type: mapToGeminiType(val.type), description: val.description || '' },
+          ])
+        ),
+      };
+    } else {
+      schema.items = {
+        type: mapToGeminiType(p.items.type),
+      };
+    }
+  }
+
+  return schema;
 }
 
 /**
