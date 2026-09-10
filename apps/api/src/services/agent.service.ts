@@ -56,7 +56,7 @@ export async function runAgent(request: AgentRunRequest): Promise<AgentRunRespon
   try {
     // Get the model with function calling
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-3.6-flash',
       tools: [{ functionDeclarations: getGeminiFunctionDeclarations() }],
     });
 

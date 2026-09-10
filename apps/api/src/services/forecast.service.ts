@@ -105,7 +105,7 @@ export async function generateForecast(
     predictedRevenue30Days: Math.round(predictedRevenue30Days),
     predictions,
     insights,
-    modelUsed: 'gemini-2.0-flash + statistical',
+    modelUsed: 'gemini-3.6-flash + statistical',
     dataPointsAnalyzed: orders.length,
   };
 
@@ -298,7 +298,7 @@ async function generateAIInsights(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.6-flash' });
 
     // Prepare summary data for AI
     const criticalProducts = predictions.filter((p) => p.restockUrgency === 'critical');
