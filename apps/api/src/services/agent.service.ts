@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType, Schema, FunctionDeclaration, FunctionDeclarationSchema } from '@google/generative-ai';
+import { GoogleGenAI, Type, FunctionDeclaration, createPartFromFunctionResponse } from '@google/genai';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import {
@@ -13,7 +13,7 @@ import {
 import * as toolsService from './tools.service';
 import * as traceService from './trace.service';
 
-let genAI: GoogleGenerativeAI | null = null;
+let genAI: GoogleGenAI | null = null;
 
 export function initializeAgent(): boolean {
   if (!config.gemini.apiKey) {
@@ -21,7 +21,7 @@ export function initializeAgent(): boolean {
     return false;
   }
 
-  genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+  genAI = new GoogleGenAI({ apiKey: config.gemini.apiKey });
   console.log('Agent service initialized');
   return true;
 }
@@ -54,71 +54,52 @@ export async function runAgent(request: AgentRunRequest): Promise<AgentRunRespon
   };
 
   try {
-    // Get the model with function calling
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      tools: [{ functionDeclarations: getGeminiFunctionDeclarations() }],
-    });
-
     // Build system prompt
     const systemPrompt = buildSystemPrompt(request);
 
-    // Start conversation
-    const chat = model.startChat({
-      history: [
-        {
-          role: 'user',
-          parts: [{ text: systemPrompt }],
-        },
-        {
-          role: 'model',
-          parts: [{ text: 'I understand. I am ready to help with shop operations. I will use the available tools to assist customers and manage the shop efficiently.' }],
-        },
-      ],
+    // Create chat with function calling
+    const chat = genAI.chats.create({
+      model: 'gemini-2.5-flash',
+      config: {
+        systemInstruction: systemPrompt,
+        tools: [{ functionDeclarations: getGeminiFunctionDeclarations() }],
+      },
     });
 
     // Add initial reasoning
     addThought(trace, 'reasoning', `Received request: "${request.input}". Analyzing intent and determining required actions.`);
 
     // Send user input
-    let response = await chat.sendMessage(request.input);
+    let response = await chat.sendMessage({ message: request.input });
     let maxIterations = request.maxToolCalls || 5;
     let iteration = 0;
     const toolsUsed: Set<string> = new Set();
 
     // Tool use loop
     while (iteration < maxIterations) {
-      const candidate = response.response.candidates?.[0];
-      if (!candidate) break;
-
-      const parts = candidate.content.parts;
-
       // Check for function calls
-      const functionCalls = parts.filter((p): p is typeof p & { functionCall: { name: string; args: Record<string, unknown> } } =>
-        'functionCall' in p && p.functionCall !== undefined
-      );
+      const functionCalls = response.functionCalls;
 
-      if (functionCalls.length === 0) {
+      if (!functionCalls || functionCalls.length === 0) {
         // No more function calls - we have the final response
         break;
       }
 
       // Process each function call
-      const functionResponseParts: Array<{ functionResponse: { name: string; response: object } }> = [];
+      const functionResponseParts: ReturnType<typeof createPartFromFunctionResponse>[] = [];
 
-      for (const part of functionCalls) {
-        const fc = part.functionCall;
+      for (const fc of functionCalls) {
         const toolCallId = uuidv4();
 
         // Log the tool call
         const toolCall: ToolCall = {
           id: toolCallId,
-          toolName: fc.name,
+          toolName: fc.name || 'unknown',
           arguments: fc.args || {},
           timestamp: new Date(),
         };
         trace.toolCalls.push(toolCall);
-        toolsUsed.add(fc.name);
+        toolsUsed.add(fc.name || 'unknown');
 
         addThought(trace, 'decision', `Calling tool: ${fc.name} with args: ${JSON.stringify(fc.args)}`);
 
@@ -134,25 +115,23 @@ export async function runAgent(request: AgentRunRequest): Promise<AgentRunRespon
             : `Tool ${fc.name} failed: ${result.error}`
         );
 
-        functionResponseParts.push({
-          functionResponse: {
-            name: fc.name,
-            response: result.success ? (result.result as object) : { error: result.error },
-          },
-        });
+        // Create function response part
+        functionResponseParts.push(
+          createPartFromFunctionResponse(
+            fc.id || toolCallId,
+            fc.name || 'unknown',
+            result.success ? (result.result as Record<string, unknown>) : { error: result.error }
+          )
+        );
       }
 
-      // Send function responses back as parts
-      response = await chat.sendMessage(functionResponseParts.map(fr => fr));
+      // Send function responses back
+      response = await chat.sendMessage({ message: functionResponseParts });
       iteration++;
     }
 
     // Extract final response
-    const finalText = response.response.candidates?.[0]?.content.parts
-      .filter((p) => 'text' in p)
-      .map((p) => ('text' in p ? p.text : ''))
-      .join('\n')
-      .trim();
+    const finalText = response.text;
 
     // Determine if human review is needed
     const { requiresHumanReview, reviewReason } = assessHumanReviewNeed(trace);
@@ -239,7 +218,7 @@ function getGeminiFunctionDeclarations(): FunctionDeclaration[] {
     name: tool.name,
     description: tool.description,
     parameters: {
-      type: SchemaType.OBJECT,
+      type: Type.OBJECT,
       properties: Object.fromEntries(
         tool.parameters.map((p) => [
           p.name,
@@ -247,71 +226,71 @@ function getGeminiFunctionDeclarations(): FunctionDeclaration[] {
         ])
       ),
       required: tool.parameters.filter((p) => p.required).map((p) => p.name),
-    } as FunctionDeclarationSchema,
+    },
   }));
 }
 
 /**
  * Build parameter schema including items for arrays
  */
-function buildParameterSchema(p: { type: string; description: string; enum?: string[]; items?: { type: string; properties?: Record<string, { type: string; description?: string }> } }): Schema {
+function buildParameterSchema(p: { type: string; description: string; enum?: string[]; items?: { type: string; properties?: Record<string, { type: string; description?: string }> } }): Record<string, unknown> {
   // Base schema
-  const baseSchema: Partial<Schema> = {
+  const baseSchema: Record<string, unknown> = {
     type: mapToGeminiType(p.type),
     description: p.description,
   };
 
   if (p.enum) {
-    (baseSchema as Schema & { enum: string[] }).enum = p.enum;
+    baseSchema.enum = p.enum;
   }
 
   // Handle array items
   if (p.type === 'array' && p.items) {
     if (p.items.type === 'object' && p.items.properties) {
       return {
-        type: SchemaType.ARRAY,
+        type: Type.ARRAY,
         description: p.description,
         items: {
-          type: SchemaType.OBJECT,
+          type: Type.OBJECT,
           properties: Object.fromEntries(
             Object.entries(p.items.properties).map(([key, val]) => [
               key,
-              { type: mapToGeminiType(val.type), description: val.description || '' } as Schema,
+              { type: mapToGeminiType(val.type), description: val.description || '' },
             ])
           ),
         },
-      } as Schema;
+      };
     } else {
       return {
-        type: SchemaType.ARRAY,
+        type: Type.ARRAY,
         description: p.description,
         items: {
           type: mapToGeminiType(p.items.type),
         },
-      } as Schema;
+      };
     }
   }
 
-  return baseSchema as Schema;
+  return baseSchema;
 }
 
 /**
  * Map our types to Gemini schema types
  */
-function mapToGeminiType(type: string): SchemaType {
+function mapToGeminiType(type: string): Type {
   switch (type) {
     case 'string':
-      return SchemaType.STRING;
+      return Type.STRING;
     case 'number':
-      return SchemaType.NUMBER;
+      return Type.NUMBER;
     case 'boolean':
-      return SchemaType.BOOLEAN;
+      return Type.BOOLEAN;
     case 'array':
-      return SchemaType.ARRAY;
+      return Type.ARRAY;
     case 'object':
-      return SchemaType.OBJECT;
+      return Type.OBJECT;
     default:
-      return SchemaType.STRING;
+      return Type.STRING;
   }
 }
 
@@ -377,7 +356,7 @@ function assessHumanReviewNeed(trace: AgentTrace): {
   const cancelledOrder = trace.toolCalls.some(
     (tc) =>
       tc.toolName === 'update_order_status' &&
-      (tc.arguments as any).newStatus === 'CANCELLED'
+      (tc.arguments as Record<string, unknown>).newStatus === 'CANCELLED'
   );
 
   if (cancelledOrder) {

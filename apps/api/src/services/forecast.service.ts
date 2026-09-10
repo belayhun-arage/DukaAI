@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config';
 import { collections, isFirebaseInitialized } from '../config/firebase';
@@ -14,14 +14,14 @@ import {
 import * as productService from './product.service';
 import * as orderService from './order.service';
 
-let genAI: GoogleGenerativeAI | null = null;
+let genAI: GoogleGenAI | null = null;
 
 export function initializeForecastService(): boolean {
   if (!config.gemini.apiKey) {
     console.warn('Gemini API key not configured - forecasting disabled');
     return false;
   }
-  genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+  genAI = new GoogleGenAI({ apiKey: config.gemini.apiKey });
   console.log('Forecast service initialized');
   return true;
 }
@@ -298,8 +298,6 @@ async function generateAIInsights(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     // Prepare summary data for AI
     const criticalProducts = predictions.filter((p) => p.restockUrgency === 'critical');
     const increasingTrend = predictions.filter((p) => p.salesTrend === 'increasing');
@@ -330,8 +328,11 @@ Respond with a JSON array of insights (no markdown, just JSON):
   }
 ]`;
 
-    const result = await model.generateContent(prompt);
-    let responseText = result.response.text().trim();
+    const result = await genAI.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    });
+    let responseText = (result.text || '').trim();
 
     // Clean up response
     if (responseText.startsWith('```')) {

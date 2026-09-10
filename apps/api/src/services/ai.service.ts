@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { config } from '../config';
 import { ParsedOrder, Product } from '@dukaai/shared';
 
-let genAI: GoogleGenerativeAI | null = null;
+let genAI: GoogleGenAI | null = null;
 
 export function initializeGemini(): boolean {
   if (!config.gemini.apiKey) {
@@ -10,16 +10,20 @@ export function initializeGemini(): boolean {
     return false;
   }
 
-  genAI = new GoogleGenerativeAI(config.gemini.apiKey);
+  genAI = new GoogleGenAI({ apiKey: config.gemini.apiKey });
   console.log('Gemini AI initialized');
   return true;
 }
 
-function getModel() {
+async function generateContent(prompt: string): Promise<string> {
   if (!genAI) {
     throw new Error('Gemini not initialized');
   }
-  return genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const response = await genAI.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+  return response.text || '';
 }
 
 /**
@@ -30,8 +34,6 @@ export async function parseOrder(
   products: Product[],
   language: 'en' | 'am' = 'en'
 ): Promise<ParsedOrder> {
-  const model = getModel();
-
   const productList = products
     .map((p) => {
       const variants = p.variants.length > 0 ? ` (variants: ${p.variants.join(', ')})` : '';
@@ -71,11 +73,10 @@ Rules:
 JSON response:`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text().trim();
+    const responseText = await generateContent(prompt);
 
     // Clean up the response (remove markdown code blocks if present)
-    let jsonStr = responseText;
+    let jsonStr = responseText.trim();
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     }
@@ -145,8 +146,6 @@ function findBestProductMatch(searchName: string, products: Product[]): Product 
 export async function detectIntent(
   message: string
 ): Promise<'ORDER' | 'GREETING' | 'QUESTION' | 'STATUS_CHECK' | 'COMPLAINT' | 'OTHER'> {
-  const model = getModel();
-
   const prompt = `Classify the intent of this customer message for a retail shop.
 
 Message: "${message}"
@@ -162,11 +161,11 @@ Respond with ONLY one of these words (no explanation):
 Intent:`;
 
   try {
-    const result = await model.generateContent(prompt);
-    const intent = result.response.text().trim().toUpperCase();
+    const responseText = await generateContent(prompt);
+    const intent = responseText.trim().toUpperCase();
 
     const validIntents = ['ORDER', 'GREETING', 'QUESTION', 'STATUS_CHECK', 'COMPLAINT', 'OTHER'];
-    return validIntents.includes(intent) ? (intent as any) : 'OTHER';
+    return validIntents.includes(intent) ? (intent as 'ORDER' | 'GREETING' | 'QUESTION' | 'STATUS_CHECK' | 'COMPLAINT' | 'OTHER') : 'OTHER';
   } catch (error) {
     console.error('Error detecting intent:', error);
     return 'OTHER';
@@ -187,8 +186,6 @@ export async function generateDailySummary(data: {
   lowStockProducts: { name: string; stockQty: number }[];
   inactiveCustomers: { name: string; lastOrderDays: number }[];
 }): Promise<string> {
-  const model = getModel();
-
   const prompt = `Generate a friendly daily business summary for a small Ethiopian shop owner.
 
 Data:
@@ -210,11 +207,10 @@ Write a brief, encouraging summary (2-3 short paragraphs) that:
 Use simple language and include relevant emojis. Keep it under 200 words.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    return await generateContent(prompt);
   } catch (error) {
     console.error('Error generating summary:', error);
-    return `📊 Today's Summary: ${data.ordersCount} orders, ${data.revenue.toLocaleString()} ${data.currency} revenue.`;
+    return `Today's Summary: ${data.ordersCount} orders, ${data.revenue.toLocaleString()} ${data.currency} revenue.`;
   }
 }
 
@@ -226,8 +222,6 @@ export async function generateReengagementMessage(
   lastOrderDays: number,
   previousProducts: string[]
 ): Promise<string> {
-  const model = getModel();
-
   const prompt = `Write a short, friendly Telegram message to re-engage a customer who hasn't ordered recently.
 
 Customer: ${customerName}
@@ -243,11 +237,10 @@ Write a warm, non-pushy message (2-3 sentences) that:
 Keep it conversational and include 1-2 emojis. Don't be salesy.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    return await generateContent(prompt);
   } catch (error) {
     console.error('Error generating re-engagement message:', error);
-    return `Hi ${customerName}! 👋 We haven't seen you in a while. Hope to see you again soon!`;
+    return `Hi ${customerName}! We haven't seen you in a while. Hope to see you again soon!`;
   }
 }
 
@@ -258,8 +251,6 @@ export async function answerProductQuestion(
   question: string,
   products: Product[]
 ): Promise<string> {
-  const model = getModel();
-
   const productInfo = products
     .map((p) => {
       const variants = p.variants.length > 0 ? `, variants: ${p.variants.join(', ')}` : '';
@@ -278,8 +269,7 @@ Customer question: "${question}"
 Provide a helpful, concise answer (1-3 sentences). If you don't know something, say so politely. Use a friendly tone.`;
 
   try {
-    const result = await model.generateContent(prompt);
-    return result.response.text().trim();
+    return await generateContent(prompt);
   } catch (error) {
     console.error('Error answering question:', error);
     return "I'm sorry, I couldn't find that information. Please contact the shop owner directly.";
