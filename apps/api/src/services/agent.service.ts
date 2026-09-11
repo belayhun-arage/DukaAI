@@ -59,7 +59,7 @@ export async function runAgent(request: AgentRunRequest): Promise<AgentRunRespon
 
     // Create chat with function calling
     const chat = genAI.chats.create({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       config: {
         systemInstruction: systemPrompt,
         tools: [{ functionDeclarations: getGeminiFunctionDeclarations() }],

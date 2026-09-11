@@ -105,7 +105,7 @@ export async function generateForecast(
     predictedRevenue30Days: Math.round(predictedRevenue30Days),
     predictions,
     insights,
-    modelUsed: 'gemini-2.5-flash + statistical',
+    modelUsed: 'gemini-3.6-flash + statistical',
     dataPointsAnalyzed: orders.length,
   };
 
@@ -329,7 +329,7 @@ Respond with a JSON array of insights (no markdown, just JSON):
 ]`;
 
     const result = await genAI.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
     });
     let responseText = (result.text || '').trim();

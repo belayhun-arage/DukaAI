@@ -20,7 +20,7 @@ async function generateContent(prompt: string): Promise<string> {
     throw new Error('Gemini not initialized');
   }
   const response = await genAI.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     contents: prompt,
   });
   return response.text || '';
