@@ -111,6 +111,62 @@ Copy `apps/api/.env.example` to `apps/api/.env` and configure:
 | **Cloudflare Proxy** | https://aged-tooth-3094.belayhun24arage.workers.dev | ✅ Active |
 | **Cron Jobs** | cron-job.org | ✅ Configured |
 
+## Deploying to Railway
+
+### Prerequisites
+
+Install Railway CLI (if not installed):
+```bash
+curl -fsSL https://railway.com/install.sh | sh
+```
+
+The CLI will be installed to `~/.railway/bin/railway`.
+
+### Deploy API
+
+From the DukaAI root directory:
+
+```bash
+# Deploy API service
+~/.railway/bin/railway up --service @dukaai/api
+```
+
+This will:
+1. Index and upload the project
+2. Build using Nixpacks (runs `npm install` + `tsc`)
+3. Deploy to Railway and start the service
+
+### Verify Deployment
+
+```bash
+# Check status
+~/.railway/bin/railway status
+
+# Check health endpoint
+curl -s https://dukaaiapi-production.up.railway.app/api/health
+
+# View logs
+~/.railway/bin/railway logs --service @dukaai/api
+```
+
+### Deploy Frontend (Vercel)
+
+The frontend auto-deploys via Vercel Git integration. If manual deploy is needed:
+
+```bash
+cd apps/web
+npx vercel --prod
+```
+
+### Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| `railway: Permission denied` | Run `chmod +x ~/.railway/bin/railway` |
+| CLI not found | Reinstall: `curl -fsSL https://railway.com/install.sh \| sh` |
+| Build fails | Check `railway logs --service @dukaai/api --build` |
+| Service offline | Check Railway dashboard for error logs |
+
 ## Cron Jobs (cron-job.org)
 
 Scheduled automation using [cron-job.org](https://cron-job.org) (free tier).
